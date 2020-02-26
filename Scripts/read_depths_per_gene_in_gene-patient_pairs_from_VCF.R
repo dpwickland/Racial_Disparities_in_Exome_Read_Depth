@@ -336,23 +336,23 @@ names(DRIVER_GENES) <- c(paste(GENE,"_1",sep=''),paste(GENE,"_2",sep=''),paste(G
   tumor_expression <- subset(all_expression, (tissue.definition == "Primary solid Tumor"))
   names(tumor_expression) <- c(paste(names(tumor_expression)[1]),paste(names(tumor_expression[,c(-1)]),'_FPKM_tumor',sep=''))
   
-  #if any patient ID is duplicated, keep row/sample with highest FPKM value
-  tumor_expression_tmp <- aggregate(tumor_expression[,4] ~ tumor_expression[,1], tumor_expression, max)
-  names(tumor_expression_tmp) <- c("submitter_id",names(tumor_expression)[4])  
-  tumor_expression <- merge(tumor_expression_tmp, tumor_expression, by=c("submitter_id",names(tumor_expression)[4]))
-  tumor_expression <- tumor_expression[,c(1,3,4,2)]
-  rm (tumor_expression_tmp)
+    #if any patient ID is duplicated, keep row/sample with highest FPKM value
+    tumor_expression_tmp <- aggregate(tumor_expression[,4] ~ tumor_expression[,1], tumor_expression, max)
+    names(tumor_expression_tmp) <- c("submitter_id",names(tumor_expression)[4])  
+    tumor_expression <- merge(tumor_expression_tmp, tumor_expression, by=c("submitter_id",names(tumor_expression)[4]))
+    tumor_expression <- tumor_expression[,c(1,3,4,2)]
+    rm (tumor_expression_tmp)
   
   #normal
   normal_expression <- subset(all_expression, (tissue.definition == "Solid Tissue Normal"))
   names(normal_expression) <- c(paste(names(normal_expression)[1]),paste(names(normal_expression[,c(-1)]),'_FPKM_normal',sep=''))
   
-  #if any patient ID is duplicated, keep row/sample with highest FPKM value
-  normal_expression_tmp <- aggregate(normal_expression[,4] ~ normal_expression[,1], normal_expression, max)
-  names(normal_expression_tmp) <- c("submitter_id",names(normal_expression)[4])  
-  normal_expression <- merge(normal_expression_tmp, normal_expression, by=c("submitter_id",names(normal_expression)[4]))
-  normal_expression <- normal_expression[,c(1,3,4,2)]
-  rm(normal_expression_tmp)
+    #if any patient ID is duplicated, keep row/sample with highest FPKM value
+    normal_expression_tmp <- aggregate(normal_expression[,4] ~ normal_expression[,1], normal_expression, max)
+    names(normal_expression_tmp) <- c("submitter_id",names(normal_expression)[4])  
+    normal_expression <- merge(normal_expression_tmp, normal_expression, by=c("submitter_id",names(normal_expression)[4]))
+    normal_expression <- normal_expression[,c(1,3,4,2)]
+    rm(normal_expression_tmp)
   
   #shorten case ID for normal
   normal_expression$submitter_id <- sub("^([^-]*-[^-]*-[^-]*).*", "\\1",normal_expression$submitter_id)
@@ -369,23 +369,23 @@ names(DRIVER_GENES) <- c(paste(GENE,"_1",sep=''),paste(GENE,"_2",sep=''),paste(G
   rm(normal_expression)   
   
   #based on above, throw out values below 0 when log taken (but don't keep log-transformed values...yet)
-  for (GENE in GENE_AND_ENSEMBL_ID) {
+#  for (GENE in GENE_AND_ENSEMBL_ID) {
     #on tumor samples
-    gene_col_tumor <- paste(names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE],"_",GENE,"_FPKM_tumor",sep="")  
-    combined_data[,c(gene_col_tumor)][log(x=combined_data[,c(gene_col_tumor)],base=2)<0] <- NA
+  #  gene_col_tumor <- paste(names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE],"_",GENE,"_FPKM_tumor",sep="")  
+  #  combined_data[,c(gene_col_tumor)][log(x=combined_data[,c(gene_col_tumor)],base=2)<0] <- NA
     
     #on normal samples
-    gene_col_normal <- paste(names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE],"_",GENE,"_FPKM_normal",sep="")  
-    combined_data[,c(gene_col_normal)][log(x=combined_data[,c(gene_col_normal)],base=2)<0] <- NA
+  #  gene_col_normal <- paste(names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE],"_",GENE,"_FPKM_normal",sep="")  
+  #  combined_data[,c(gene_col_normal)][log(x=combined_data[,c(gene_col_normal)],base=2)<0] <- NA
     
     #divide non-NA by tumor purity
     #on tumor samples
-    new_gene_col_tumor <- paste(names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE],"_tumor_FPKM_adj",sep='')
-    combined_data[,c(new_gene_col_tumor)] <- log(x=as.numeric(as.numeric(combined_data[,c(gene_col_tumor)]))/combined_data$Tumor_Purity,base=2)
+#    new_gene_col_tumor <- paste(names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE],"_tumor_FPKM_adj",sep='')
+ #   combined_data[,c(new_gene_col_tumor)] <- log(x=as.numeric(as.numeric(combined_data[,c(gene_col_tumor)]))/combined_data$Tumor_Purity,base=2)
     #on normal samples
-    new_gene_col_normal <- paste(names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE],"_normal_FPKM_adj",sep='')
-    combined_data[,c(new_gene_col_normal)] <- log(x=as.numeric(as.numeric(combined_data[,c(gene_col_normal)]))/combined_data$Tumor_Purity,base=2)
-  }
+#    new_gene_col_normal <- paste(names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE],"_normal_FPKM_adj",sep='')
+ #   combined_data[,c(new_gene_col_normal)] <- log(x=as.numeric(as.numeric(combined_data[,c(gene_col_normal)]))/combined_data$Tumor_Purity,base=2)
+#  }
   
   #save dataset
   system(paste0('mkdir /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/FPKM/',names(GENE_AND_ENSEMBL_ID)[GENE_AND_ENSEMBL_ID==GENE]))
