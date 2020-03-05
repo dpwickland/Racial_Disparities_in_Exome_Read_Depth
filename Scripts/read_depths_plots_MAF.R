@@ -18,7 +18,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 theme_set(theme_grey())
 
 
-rm(list = ls())
+
 GENE='TP53'
 
 CANCER_LIST <- c('BRCA','LUAD','UCEC','COAD','PRAD','KIRC')
@@ -122,7 +122,7 @@ ggplot(subset(from_VCF_melted,(Variant_Type == 'SNP' & (variable == 'Tumor REF+A
 
 dev.off()
 
-
+rm(list = ls())
 
 
 
