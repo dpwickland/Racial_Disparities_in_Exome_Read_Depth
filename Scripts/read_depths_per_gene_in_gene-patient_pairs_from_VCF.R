@@ -186,7 +186,7 @@ for (CANCER_NAME in CANCER_LIST){
     avg_base_quality_alt_bam_col <- ncol(cdriver)+6
   
     for (i in 1:nrow(cdriver)){ 
-      print(paste(i,"/",nrow(cdriver),sep=''))
+      print(paste0(CANCER_NAME,": ",i,"/",nrow(cdriver)))
       #total_read_depth <- numeric(0) #initialize object to store depths for particular case ID / row
       #row_position_read_depth <- numeric(0) #initialize object to store depths for particular case ID / row
       #output NA if index file does not exist
