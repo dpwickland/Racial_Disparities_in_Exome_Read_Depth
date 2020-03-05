@@ -8,6 +8,7 @@ if (length(args)!=1) {
 } else if (length(args)==1) {
   # default output file
   GENE <- toString(args[1])
+  GENE_orig <- GENE
 }
 
 #load libraries
@@ -263,9 +264,9 @@ for (CANCER_NAME in CANCER_LIST){
     cdriver <- cdriver[,c(1,3:10,2,11:ncol(cdriver))]
   
     #save dataset
-    system(paste0('mkdir /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE,'/'))
-    system(paste0('rm /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'))
-    write.table(x=cdriver,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),sep='\t',row.names=FALSE)
+    system(paste0('mkdir /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE_orig,'/'))
+    system(paste0('rm /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE_orig,'/',CANCER_NAME,'_',GENE_orig,'_depths_etc.txt'))
+    write.table(x=cdriver,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE_orig,'/',CANCER_NAME,'_',GENE_orig,'_depths_etc.txt'),sep='\t',row.names=FALSE)
     
     
   #6. Also output FPKM for each patient, both tumor and normal
