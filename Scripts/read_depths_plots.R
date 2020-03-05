@@ -18,12 +18,12 @@ library(scales,warn.conflicts = FALSE)
 library(stringr)
 setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 theme_set(theme_grey())
-rm(list = ls())
+
 
 CANCER_LIST <- c('BRCA','LUAD','UCEC','KIRC','PRAD','COAD')
 GENE_LIST <- c('TP53','PIK3CA','MUC16','USH2A','TTN')
 
-for (GENE in GENE_LIST){
+
   ###############################################
   #0. LOAD AND PROCESS DATA
   ############################################### 
@@ -59,7 +59,7 @@ for (GENE in GENE_LIST){
     combined_data <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/overall_depths/',CANCER_NAME,'_overall_depths_etc.txt'),header=TRUE)
     
     #load gene depths data
-    cdriver <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE,'/',CANCER_NAME,'_',names(GENE_AND_ENSEMBL_ID),'_depths_etc.txt'),header=TRUE)
+    cdriver <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),header=TRUE)
     
     #load all bams all mutations in gene data
   #  all_bams_all_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_missing_from_VCF/',GENE,'/',CANCER_NAME,'_',names(GENE_AND_ENSEMBL_ID),'_depths_all_mutations_all_samples_etc.txt'),header=TRUE)
@@ -239,8 +239,7 @@ for (GENE in GENE_LIST){
                        symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", "NS")))
   
   dev.off()
-  
-}
+  rm(list = ls())
 
 
 
