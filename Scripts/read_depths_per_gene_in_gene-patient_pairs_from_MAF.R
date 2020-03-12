@@ -4,7 +4,7 @@ args<-commandArgs(TRUE)
 .libPaths()
 # test whether both arguments present
 if (length(args)!=1) {
-  stop("Usage example: Rscript --vanilla TCGA_gene_depths_pairs_from_VCF.R TP53", call.=FALSE)
+  stop("Usage example: Rscript --vanilla TCGA_gene_depths_pairs_from_MAF.R TP53", call.=FALSE)
 } else if (length(args)==1) {
   # default output file
   GENE <- toString(args[1])
@@ -31,21 +31,22 @@ CANCER_LIST <- c('BRCA','LUAD','UCEC','COAD','PRAD','KIRC')
 for (CANCER_NAME in CANCER_LIST){
   
   #Extract mutations in particular genes from protected MAFs
-  system(paste0("awk  '$1 == \"Hugo_Symbol\" || $1 == \"",GENE,"\"' /research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_protected.maf > /research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_",GENE,"_protected.tmp"))
+  system(paste0("awk  '$1 == \"Hugo_Symbol\" || $1 == \"",GENE,"\" &&  ($12 == \"A\" || $12 == \"G\" || $12 == \"T\" || $12 == \"C\") && ($13 == \"A\" || $13 == \"G\" || $13 == \"T\" || $13 == \"C\")' /research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_protected.maf > /research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_",GENE,"_protected.tmp"))
   
   cdriver_tumor_mutations_protected <- read.table(paste0("/research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_",GENE,"_protected.tmp"),header=TRUE,sep='\t',quote="")
   cdriver_tumor_mutations_protected <- cdriver_tumor_mutations_protected[,c(5,6,7,12,13,16,17,18,19,44,45)]
   
   
   #Extract mutations in particular genes from somatic MAFs
-  system(paste0("awk  '$1 == \"Hugo_Symbol\" || $1 == \"",GENE,"\"' /research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_somatic.maf > /research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_",GENE,"_somatic.tmp"))
+  system(paste0("awk  '$1 == \"Hugo_Symbol\" || $1 == \"",GENE,"\" &&  ($12 == \"A\" || $12 == \"G\" || $12 == \"T\" || $12 == \"C\") && ($13 == \"A\" || $13 == \"G\" || $13 == \"T\" || $13 == \"C\")' /research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_somatic.maf > /research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_",GENE,"_somatic.tmp"))
   
   cdriver_tumor_mutations_somatic <- read.table(paste0("/research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/",CANCER_NAME,"_",GENE,"_somatic.tmp"),header=TRUE,sep='\t',quote="")
   cdriver_tumor_mutations_somatic <- cdriver_tumor_mutations_somatic[-c(18,19,44,45)]
   
   #combine the two, i.e. get the germline info from the protected and add to the somatic
   cdriver_tumor_mutations <- merge(cdriver_tumor_mutations_somatic,cdriver_tumor_mutations_protected, by=c('Chromosome','Start_Position','End_Position','Tumor_Sample_Barcode','Matched_Norm_Sample_Barcode','Tumor_Seq_Allele1','Tumor_Seq_Allele2'))
-  
+  names(cdriver_tumor_mutations)[6] <- 'Tumor_Seq_Ref'
+  names(cdriver_tumor_mutations)[7] <- 'Tumor_Seq_Alt'
   
   #add additional columns: total AD, alt allele concentration (from AD)
   cdriver_tumor_mutations$alt_allele_concent_MAF <- as.numeric(cdriver_tumor_mutations$t_alt_count) / as.numeric(cdriver_tumor_mutations$t_depth)
@@ -92,6 +93,19 @@ for (CANCER_NAME in CANCER_LIST){
     cdriver <- add_count(cdriver, submitter_id)
     names(cdriver)[ncol(cdriver)] <- 'mutation_count_for_patient'
     
+    #subset only the loci designated as Pathogenic in ClinVar file
+    
+    #extract gene from ClinVar VCF
+    system(paste0("cat /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/GRCh38_latest_clinvar.vcf | awk '/#/ || length($4) == 1 && length($5) ==1' | grep -w ",GENE," | grep Pathogenic | grep -v Likely > /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,"_",CANCER_NAME,".tmp"))
+    
+    #add header and append 'chr' to chromosome col
+    ClinVar_Mutations <- read.table(paste0("/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,".tmp"), sep='\t',header=FALSE,quote="")
+    colnames(ClinVar_Mutations) <- c('Chromosome','Start_Position','ID','Tumor_Seq_Ref','Tumor_Seq_Alt','QUAL','FILTER','INFO')
+    ClinVar_Mutations <- ClinVar_Mutations[,c(1,2,4,5)]
+    ClinVar_Mutations$Chromosome <- paste0("chr",ClinVar_Mutations$Chromosome)
+    
+    cdriver <- merge(cdriver, ClinVar_Mutations, by=c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt'),all.y=TRUE)
+    
 #are any patients represented by more than one bam??????????????
     
     
@@ -125,15 +139,15 @@ for (CANCER_NAME in CANCER_LIST){
         bases <- gsub("t","T", bases)
         
         
-        tumor_ref_base_count_bam <- str_count(bases,as.character(cdriver[i,]$Tumor_Seq_Allele1)) #count number of reads with ref base in the pileup (convert all to uppercase)
-        tumor_alt_base_count_bam <- str_count(bases,as.character(cdriver[i,]$Tumor_Seq_Allele2)) #count number of reads with alt base in the pileup (convert all to uppercase)
+        tumor_ref_base_count_bam <- str_count(bases,as.character(cdriver[i,]$Tumor_Seq_Ref)) #count number of reads with ref base in the pileup (convert all to uppercase)
+        tumor_alt_base_count_bam <- str_count(bases,as.character(cdriver[i,]$Tumor_Seq_Alt)) #count number of reads with alt base in the pileup (convert all to uppercase)
        
         cdriver[i,variant_read_depth_bam_MPILEUP_col] <- variant_read_depth_bam_MPILEUP
         cdriver[i, tumor_ref_base_count_bam_col] <- tumor_ref_base_count_bam
         cdriver[i, tumor_alt_base_count_bam_col] <- tumor_alt_base_count_bam
   
-        tumor_ref_indices <- unlist(str_locate_all(bases,as.character(cdriver[i,]$Tumor_Seq_Allele1)))[1:tumor_ref_base_count_bam] #identify index positions of REF allele in the pileup; then get their corresponding quality scores; unlisting must be chopped in half b/c entire vector repeated once
-        tumor_alt_indices <- unlist(str_locate_all(bases,as.character(cdriver[i,]$Tumor_Seq_Allele2)))[1:tumor_alt_base_count_bam] #identify index positions of REF allele in the pileup; then get their corresponding quality scores; unlisting must be chopped in half b/c entire vector repeated once
+        tumor_ref_indices <- unlist(str_locate_all(bases,as.character(cdriver[i,]$Tumor_Seq_Ref)))[1:tumor_ref_base_count_bam] #identify index positions of REF allele in the pileup; then get their corresponding quality scores; unlisting must be chopped in half b/c entire vector repeated once
+        tumor_alt_indices <- unlist(str_locate_all(bases,as.character(cdriver[i,]$Tumor_Seq_Alt)))[1:tumor_alt_base_count_bam] #identify index positions of REF allele in the pileup; then get their corresponding quality scores; unlisting must be chopped in half b/c entire vector repeated once
       
     #    read_mapping_quality <- asc(strsplit(pileup,'\t')[[1]][7])-33
     #    avg_read_mapping_quality_ref_bam <- round(mean(read_mapping_quality[ref_indices]),digits=2)
@@ -194,7 +208,7 @@ for (CANCER_NAME in CANCER_LIST){
     cdriver$Cancer <- CANCER_NAME
     
     #save dataset
-    system(paste0('mkdir /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/'))
+    system(paste0('mkdir -p /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/'))
     system(paste0('rm /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'))
     write.table(x=cdriver,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),sep='\t',row.names=FALSE)
 }  
