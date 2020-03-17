@@ -30,11 +30,6 @@ combined_data_ID_and_bams_list <- droplevels(combined_data_ID_and_bams_list)
 #load gene depths data
 cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),header=TRUE)[,c(1,2,3,5,6)]
 
-#load all gene mutations data
-#cdriver_tumor_mutations <- cdriver[,c(1:5)]
-  #read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE,'/',CANCER_NAME,'_',GENE,'_all_detected_mutations.txt'),sep='\t')
-
-
 ############################################
 #INDIVIDUAL GENE ANALYSIS: ALL PAIRWISE COMPARISONS BETWEEN EACH INDIVIDUAL'S BAM AND THE LIST OF ALL DETECTED SOMATIC VARIANTS IN ALL SAMPLES#
 ############################################
