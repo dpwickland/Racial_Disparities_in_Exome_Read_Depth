@@ -96,7 +96,7 @@ for (CANCER_NAME in CANCER_LIST){
     #subset only the loci designated as Pathogenic in ClinVar file
     
     #extract gene from ClinVar VCF
-    system(paste0("cat /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/GRCh38_latest_clinvar.vcf | awk '/#/ || length($4) == 1 && length($5) ==1' | grep -w ",GENE," | grep Pathogenic | grep -v Likely > /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,"_",CANCER_NAME,".tmp"))
+    system(paste0("cat /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/GRCh38_latest_clinvar.vcf | awk '/#/ || length($4) == 1 && length($5) ==1' | grep -w ",GENE," | awk '$8 ~ \"Pathogenic\" || $8 ~ \"Likely pathogenic\"' > /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,"_",CANCER_NAME,".tmp"))
     
     #add header and append 'chr' to chromosome col
     ClinVar_Mutations <- read.table(paste0("/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,".tmp"), sep='\t',header=FALSE,quote="")
@@ -203,7 +203,18 @@ for (CANCER_NAME in CANCER_LIST){
     names(cdriver)[9] <- 'Tumor_Seq_Alt'
     cdriver <- cdriver[,c("submitter_id","Chromosome","Start_Position","End_Position","Tumor_Seq_Ref","Tumor_Seq_Alt","Match_Norm_Seq_Allele1","Match_Norm_Seq_Allele2","Hugo_Symbol","Variant_Classification","Variant_Type","HGVSc","HGVSp","Exon_Number","t_depth","t_ref_count","t_alt_count","n_depth","n_ref_count","n_alt_count","alt_allele_concent_MAF","mutation_count_for_patient","variant_read_depth_bam_MPILEUP","tumor_ref_base_count_bam","tumor_alt_base_count_bam","tumor_ref_avg_base_quality_bam","tumor_alt_avg_base_quality_bam","race","center_exome","Center","Source_Site_exome","Cancer","TCGA_Subtype","read_depth_exome","read_depth_RNAseq","bam_full_path_exome","bam_full_path_RNAseq")]
     
+    #identify patient + locus pairs that have no entry in MAF
+    partially_not_in_MAF <- cdriver[cdriver$Start_Position %in% subset(cdriver, (is.na(submitter_id)))$Start_Position,]
+    fully_not_in_MAF <- subset(partially_not_in_MAF, (is.na(submitter_id)))
+    fully_not_in_MAF$`SNP in at least 1 case in MAF?` <- 'No'
     
+    #identify patient + locus pairs that have entry in MAF
+    partially_in_MAF <- cdriver[cdriver$Start_Position %in% subset(cdriver, (!is.na(submitter_id)))$Start_Position,]
+    fully_in_MAF <- subset(partially_in_MAF, (!is.na(submitter_id)))
+    fully_in_MAF$`SNP in at least 1 case in MAF?` <- 'Yes'
+    
+    #combine
+    cdriver <- rbind(fully_in_MAF, fully_not_in_MAF)
     
     cdriver$Cancer <- CANCER_NAME
     
