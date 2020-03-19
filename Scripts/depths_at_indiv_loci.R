@@ -56,6 +56,15 @@ for (CANCER_NAME in CANCER_LIST){
   
   colnames(all_cases)[4] <- "ClinVar Position"
   
+  #load VCF depths data
+  cases_with_VCF_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),header=TRUE)
+  cases_with_VCF_mutations <- cases_with_VCF_mutations[,c('submitter_id','chromosome','mutation_position','ref_allele_VCF','alt_allele_VCF','AD_total_VCF','AD_ref_VCF','AD_alt_VCF')]
+  
+  colnames(cases_with_VCF_mutations) <- c('submitter_id','Chromosome','ClinVar Position','Tumor_Seq_Ref','Tumor_Seq_Alt','SNP_depth_vcf','SNP_ref_depth_vcf','SNP_alt_depth_vcf')
+  
+  all_cases <- merge(all_cases, cases_with_VCF_mutations, by=c('submitter_id','Chromosome','ClinVar Position','Tumor_Seq_Ref','Tumor_Seq_Alt'), all.x=TRUE)
+  
+  
   all_cases_all_cancers <- rbind(all_cases_all_cancers, all_cases)
   
 
@@ -63,6 +72,9 @@ for (CANCER_NAME in CANCER_LIST){
 
 #order by position
 all_cases_all_cancers <- all_cases_all_cancers[order(all_cases_all_cancers$`ClinVar Position`,all_cases_all_cancers$race),]
+
+#reorder columns
+all_cases_all_cancers <- all_cases_all_cancers[,c(1,6,2:5,7:9,17:19,10:16)]
 
 write.table(x=all_cases_all_cancers, file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/read_depth_table_',GENE,'.txt'),sep='\t',row.names=FALSE)  
 
