@@ -1,4 +1,4 @@
-GENE <- 'PIK3CA'
+GENE <- 'TP53'
 
 
 CANCER_LIST <- c('BRCA','LUAD','UCEC','PRAD','COAD')
