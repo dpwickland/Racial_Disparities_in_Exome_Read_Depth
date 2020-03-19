@@ -21,12 +21,12 @@ for (CANCER_NAME in CANCER_LIST){
    cases_with_MAF_mutations <- cases_with_MAF_mutations[,c(1,28,2,3,5,6,15,16,17,23,24,25,32,38,39,40)]
    names(cases_with_MAF_mutations)[14] <- 'SNP in at least 1 case in MAF?'
 
-   colnames(cases_with_MAF_mutations)[7] <- "SNP_depth_maf"
-   names(cases_with_MAF_mutations)[8] <- "SNP_ref_depth_maf"
-   names(cases_with_MAF_mutations)[9] <- "SNP_alt_depth_maf"
-   colnames(cases_with_MAF_mutations)[10] <- "SNP_depth_bam"
-   names(cases_with_MAF_mutations)[11] <- "SNP_ref_depth_bam"
-   names(cases_with_MAF_mutations)[12] <- "SNP_alt_depth_bam"
+   colnames(cases_with_MAF_mutations)[7] <- "MAF_depth"
+   names(cases_with_MAF_mutations)[8] <- "MAF_ref_depth"
+   names(cases_with_MAF_mutations)[9] <- "MAF_alt_depth"
+   colnames(cases_with_MAF_mutations)[10] <- "BAM_depth"
+   names(cases_with_MAF_mutations)[11] <- "BAM_ref_depth"
+   names(cases_with_MAF_mutations)[12] <- "BAM_alt_depth"
    cases_with_MAF_mutations <- subset(cases_with_MAF_mutations, (submitter_id!='NA'))
    
   #load all bams all mutations in gene data
@@ -36,13 +36,13 @@ for (CANCER_NAME in CANCER_LIST){
   cases_without_MAF_mutations$`Patient+SNP in MAF?` <- "No"
   
   cases_without_MAF_mutations <- cases_without_MAF_mutations[,c(1,2,5,6,7,8,9,10,11,15,16,17)]
-  names(cases_without_MAF_mutations)[7] <- "SNP_depth_bam"
-  names(cases_without_MAF_mutations)[8] <- "SNP_ref_depth_bam"
-  names(cases_without_MAF_mutations)[9] <- "SNP_alt_depth_bam"
+  names(cases_without_MAF_mutations)[7] <- "BAM_depth"
+  names(cases_without_MAF_mutations)[8] <- "BAM_ref_depth"
+  names(cases_without_MAF_mutations)[9] <- "BAM_alt_depth"
   
-  cases_without_MAF_mutations$SNP_depth_maf <- NA
-  cases_without_MAF_mutations$SNP_ref_depth_maf <- NA
-  cases_without_MAF_mutations$SNP_alt_depth_maf <- NA
+  cases_without_MAF_mutations$MAF_depth <- NA
+  cases_without_MAF_mutations$MAF_ref_depth <- NA
+  cases_without_MAF_mutations$MAF_alt_depth <- NA
   
   cases_without_MAF_mutations_but_SNPs_in_MAF <- cases_without_MAF_mutations[paste0(cases_without_MAF_mutations$Start_Position, cases_without_MAF_mutations$Tumor_Seq_Alt) %in% paste0(cases_with_MAF_mutations$Start_Position, cases_with_MAF_mutations$Tumor_Seq_Alt),]
   cases_without_MAF_mutations_but_SNPs_in_MAF$`SNP in at least 1 case in MAF?` <- "Yes"
@@ -60,7 +60,7 @@ for (CANCER_NAME in CANCER_LIST){
   cases_with_VCF_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_VCF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),header=TRUE)
   cases_with_VCF_mutations <- cases_with_VCF_mutations[,c('submitter_id','chromosome','mutation_position','ref_allele_VCF','alt_allele_VCF','AD_total_VCF','AD_ref_VCF','AD_alt_VCF')]
   
-  colnames(cases_with_VCF_mutations) <- c('submitter_id','Chromosome','ClinVar Position','Tumor_Seq_Ref','Tumor_Seq_Alt','SNP_depth_vcf','SNP_ref_depth_vcf','SNP_alt_depth_vcf')
+  colnames(cases_with_VCF_mutations) <- c('submitter_id','Chromosome','ClinVar Position','Tumor_Seq_Ref','Tumor_Seq_Alt','VCF_depth','VCF_ref_depth','VCF_alt_depth')
   
   all_cases <- merge(all_cases, cases_with_VCF_mutations, by=c('submitter_id','Chromosome','ClinVar Position','Tumor_Seq_Ref','Tumor_Seq_Alt'), all.x=TRUE)
   
