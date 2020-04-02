@@ -28,6 +28,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 
 CANCER_LIST <- c('BRCA','LUAD','UCEC','COAD','PRAD','KIRC')
 
+
 for (CANCER_NAME in CANCER_LIST){
   
   #Extract mutations in particular genes from protected MAFs
@@ -92,19 +93,19 @@ for (CANCER_NAME in CANCER_LIST){
     #add col for number of mutations per sample
     cdriver <- add_count(cdriver, submitter_id)
     names(cdriver)[ncol(cdriver)] <- 'mutation_count_for_patient'
-    
+    #############
     #subset only the loci designated as Pathogenic in ClinVar file
-    
+    #############
     #extract gene from ClinVar VCF
-    system(paste0("cat /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/GRCh38_latest_clinvar.vcf | awk '/#/ || length($4) == 1 && length($5) ==1' | grep -w ",GENE," | awk '$8 ~ \"Pathogenic\" || $8 ~ \"Likely pathogenic\"' > /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,"_",CANCER_NAME,".tmp"))
+#    system(paste0("cat /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/GRCh38_latest_clinvar.vcf | awk '/#/ || length($4) == 1 && length($5) ==1' | grep -w ",GENE," | awk '$8 ~ \"Pathogenic\" || $8 ~ \"Likely pathogenic\"' > /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,"_",CANCER_NAME,".tmp"))
     
     #add header and append 'chr' to chromosome col
-    ClinVar_Mutations <- read.table(paste0("/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,".tmp"), sep='\t',header=FALSE,quote="")
-    colnames(ClinVar_Mutations) <- c('Chromosome','Start_Position','ID','Tumor_Seq_Ref','Tumor_Seq_Alt','QUAL','FILTER','INFO')
-    ClinVar_Mutations <- ClinVar_Mutations[,c(1,2,4,5)]
-    ClinVar_Mutations$Chromosome <- paste0("chr",ClinVar_Mutations$Chromosome)
+#    ClinVar_Mutations <- read.table(paste0("/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/ClinVar/",GENE,".tmp"), sep='\t',header=FALSE,quote="")
+#    colnames(ClinVar_Mutations) <- c('Chromosome','Start_Position','ID','Tumor_Seq_Ref','Tumor_Seq_Alt','QUAL','FILTER','INFO')
+#    ClinVar_Mutations <- ClinVar_Mutations[,c(1,2,4,5)]
+#    ClinVar_Mutations$Chromosome <- paste0("chr",ClinVar_Mutations$Chromosome)
     
-    cdriver <- merge(cdriver, ClinVar_Mutations, by=c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt'),all.y=TRUE)
+#    cdriver <- merge(cdriver, ClinVar_Mutations, by=c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt'),all.y=TRUE)
     
 #are any patients represented by more than one bam??????????????
     
@@ -206,7 +207,7 @@ for (CANCER_NAME in CANCER_LIST){
     #identify patient + locus pairs that have no entry in MAF
     partially_not_in_MAF <- cdriver[cdriver$Start_Position %in% subset(cdriver, (is.na(submitter_id)))$Start_Position,]
     fully_not_in_MAF <- subset(partially_not_in_MAF, (is.na(submitter_id)))
-    fully_not_in_MAF$`SNP in at least 1 case in MAF?` <- 'No'
+    try(fully_not_in_MAF$`SNP in at least 1 case in MAF?` <- 'No',silent=TRUE)
     
     #identify patient + locus pairs that have entry in MAF
     partially_in_MAF <- cdriver[cdriver$Start_Position %in% subset(cdriver, (!is.na(submitter_id)))$Start_Position,]
