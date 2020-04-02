@@ -203,6 +203,7 @@ names(Ns)[3] <- 'N'
 
 
 
+theme_set(theme_bw()) #set theme to remove gridlines
 
 all_data_jittered <- data.frame()
 for (CANCER_NAME in c("BRCA","COAD","GBM","KIRC","KIRP","LUAD","PRAD","UCEC")){
