@@ -160,7 +160,7 @@ for (CANCER_NAME in CANCER_LIST){
 
 
 #4. Add additional column: alt allele concentration 
-  all_bams_all_mutations_grand$alt_allele_concent_bam <- as.numeric(all_bams_all_mutations_grand$alt_base_count_bam) / as.numeric(all_bams_all_mutations_grand$variant_read_depth_bam_MPILEUP)    
+  all_bams_all_mutations_grand$alt_allele_concent_bam <- as.numeric(all_bams_all_mutations_grand$alt_base_count_bam) / as.numeric(all_bams_all_mutations_grand$alt_base_count_bam + all_bams_all_mutations_grand$ref_base_count_bam)    
   
 system(paste0("mkdir -p /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/normals/",GENE))  
 
@@ -168,6 +168,11 @@ write.table(x=all_bams_all_mutations_grand,file=paste0('/home/mayo/m187735/s2129
 
 
 
+################
+#Analysis
+################
+
+#plot alt allele concentration for all
 ggplot(all_bams_all_mutations_grand, aes(x=factor(mutation_position),y=(alt_allele_concent_bam),fill=factor(mutation_position))) + xlab("") + ylab("ALT allele concentration per patient") + facet_wrap(~Cancer) +
   geom_boxplot() + scale_x_discrete() +  labs(title=paste0("Concencentration of the alternative allele for 17:7669659 (AA377) & 17:7669662 (AA378)\n in *normal tissue* samples from cancer patients")) + 
   theme(strip.text = element_text(size = 18,face='bold'),
@@ -181,6 +186,97 @@ ggplot(all_bams_all_mutations_grand, aes(x=factor(mutation_position),y=(alt_alle
         legend.title=element_blank()) + 
   geom_point() + ylim(0,0.50)
 
+
+
+
+
+
+#find tumor-patient pairs that are not present in MAF
+all_protected_patient_mutation_pairs_in_gene <- data.frame()
+#get list of tumor-patient pairs in protected MAF, i.e. individuals that had somatic mutations
+for (CANCER_NAME in c("BRCA","COAD","KIRC","LUAD","PRAD","UCEC")){
+  all_protected_patient_mutation_pairs_in_gene_one_cancer <- read.table(paste0('/research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/',CANCER_NAME,'_',GENE,'_protected.tmp'),sep='\t',header=TRUE,quote="")
+  
+  all_protected_patient_mutation_pairs_in_gene_one_cancer$Cancer <- CANCER_NAME
+  
+  all_protected_patient_mutation_pairs_in_gene <- rbind(all_protected_patient_mutation_pairs_in_gene,all_protected_patient_mutation_pairs_in_gene_one_cancer)
+
+}
+rm(all_protected_patient_mutation_pairs_in_gene_one_cancer)
+
+#subset the AA377 and AA378 mts
+all_protected_patient_mutation_pairs_in_gene <- subset(all_protected_patient_mutation_pairs_in_gene, (Start_Position==7669659 | Start_Position==7669662))
+
+#also subset AA377 and AA378 mts from normals (already subsetted from earlier script)
+all_bams_all_mutations_grand <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/normals/',GENE,'/',GENE,'_depths_all_mutations_all_samples_etc_NORMAL.txt'),header=TRUE)
+all_bams_all_mutations_grand <- subset(all_bams_all_mutations_grand, (mutation_position==7669659 | mutation_position==7669662))
+
+
+
+
+#get data congruent so that can find non-overlapping
+all_protected_patient_mutation_pairs_in_gene <- all_protected_patient_mutation_pairs_in_gene[,c('Cancer','Tumor_Sample_Barcode','Chromosome','Start_Position','Reference_Allele','Tumor_Seq_Allele2','t_ref_count','t_alt_count','n_ref_count','n_alt_count')]
+all_protected_patient_mutation_pairs_in_gene$Tumor_Sample_Barcode <- sub("^([^-]*-[^-]*-[^-]*).*", "\\1", all_protected_patient_mutation_pairs_in_gene$Tumor_Sample_Barcode)
+
+all_bams_all_mutations_grand <- all_bams_all_mutations_grand[,c('Cancer','submitter_id','chromosome','mutation_position','ref_allele_VCF','alt_allele_VCF','ref_base_count_bam','alt_base_count_bam')]
+
+#rename
+somatic_mutations_tumor <- all_protected_patient_mutation_pairs_in_gene
+rm(all_protected_patient_mutation_pairs_in_gene)
+germline_mutations_normal <- all_bams_all_mutations_grand
+rm(all_bams_all_mutations_grand)
+
+#now need consistent col names
+names(somatic_mutations_tumor) <- c("Cancer","sample_ID","chromosome","position","ref_allele","alt_allele","ref_base_count_normal_tissue","alt_base_count_normal_tissue","ref_base_count_tumor_tissue","alt_base_count_tumor_tissue")
+names(germline_mutations_normal) <- c("Cancer","sample_ID","chromosome","position","ref_allele","alt_allele","ref_base_count_normal_tissue","alt_base_count_normal_tissue")
+
+#add alt allele concentration
+somatic_mutations_tumor$alt_allele_concentration_normal_tissue <- as.numeric(somatic_mutations_tumor$alt_base_count_normal_tissue) / as.numeric(somatic_mutations_tumor$alt_base_count_normal_tissue + somatic_mutations_tumor$ref_base_count_normal_tissue)  
+
+somatic_mutations_tumor$alt_allele_concentration_tumor_tissue <- as.numeric(somatic_mutations_tumor$alt_base_count_tumor_tissue) / as.numeric(somatic_mutations_tumor$alt_base_count_tumor_tissue + somatic_mutations_tumor$ref_base_count_tumor_tissue)  
+
+germline_mutations_normal$alt_allele_concentration_normal_tissue <- as.numeric(germline_mutations_normal$alt_base_count_normal_tissue) / as.numeric(germline_mutations_normal$alt_base_count_normal_tissue + germline_mutations_normal$ref_base_count_normal_tissue)  
+
+
+#remove, from germline mutations file, any samples that also have mutations in tumor tissue at these loci
+germline_mutations_not_in_somatic_file <- germline_mutations_normal[!interaction(germline_mutations_normal[c("Cancer","sample_ID","chromosome","position")]) %in% interaction(somatic_mutations_tumor[c("Cancer","sample_ID","chromosome","position")]),]
+
+
+
+write.table(x=germline_mutations_not_in_somatic_file, file='/home/mayo/m187735/s212975.Wickland_Immunomics/processing/Goodison/AA377_AA378_variants_in_normal_tissue_for_patients_WITHOUT_somatic_variants.txt',row.names = FALSE,quote=FALSE, sep='\t')
+write.table(x=somatic_mutations_tumor, file='/home/mayo/m187735/s212975.Wickland_Immunomics/processing/Goodison/AA377_AA378_variants_in_normal_tissue_for_patients_WITH_somatic_variants.txt',row.names = FALSE,quote=FALSE,sep='\t')
+
+
+
+
+#plot alt allele concentration for somatic-only
+ggplot(germline_mutations_not_in_somatic_file, aes(x=factor(position),y=(alt_allele_concentration_normal_tissue),fill=factor(position))) + xlab("") + ylab("ALT allele concentration per patient") + facet_wrap(~Cancer) +
+  geom_boxplot() + scale_x_discrete() +  labs(title=paste0("Concencentration of the alternative allele for \n17:7669659 (AA377) & 17:7669662 (AA378) in *normal tissue* samples \nfrom cancer patients who have no reported somatic mutations at these loci")) + 
+  theme(strip.text = element_text(size = 18,face='bold'),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size=18),
+        axis.title.y = element_text(size=20,face='bold',margin=margin(t=0,r=10,b=0,l=0)),
+        axis.ticks= element_blank(), 
+        plot.title = element_text(hjust=0.5,size=18,face='bold'),
+        legend.position = 'bottom',legend.direction='horizontal',
+        legend.text=element_text(size=24),
+        legend.title=element_blank()) + 
+  geom_point() + ylim(0,0.50)
+
+
+#plot alt allele concentration for missing_from_somatic
+ggplot(somatic_mutations_tumor, aes(x=factor(position),y=(alt_allele_concentration_normal_tissue),fill=factor(position))) + xlab("") + ylab("ALT allele concentration per patient") + facet_wrap(~Cancer) +
+  geom_boxplot() + scale_x_discrete() +  labs(title=paste0("Concencentration of the alternative allele for \n17:7669659 (AA377) & 17:7669662 (AA378) in *normal tissue* samples \nfrom cancer patients who DO have reported somatic mutations at these loci")) + 
+  theme(strip.text = element_text(size = 18,face='bold'),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size=18),
+        axis.title.y = element_text(size=20,face='bold',margin=margin(t=0,r=10,b=0,l=0)),
+        axis.ticks= element_blank(), 
+        plot.title = element_text(hjust=0.5,size=18,face='bold'),
+        legend.position = 'bottom',legend.direction='horizontal',
+        legend.text=element_text(size=24),
+        legend.title=element_blank()) + 
+  geom_point() + ylim(0,0.50)
 
 
 
