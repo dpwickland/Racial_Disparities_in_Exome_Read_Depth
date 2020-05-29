@@ -28,14 +28,14 @@ combined_data_ID_and_bams_list <- subset(combined_data_ID_and_bams_list, (read_d
 combined_data_ID_and_bams_list <- droplevels(combined_data_ID_and_bams_list)
 
 #load gene depths data
-cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),header=TRUE)[,c(1,2,3,5,6)]
+cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),header=TRUE)[,c(1,2,3,5,6,24)]
 
 ############################################
 #INDIVIDUAL GENE ANALYSIS: ALL PAIRWISE COMPARISONS BETWEEN EACH INDIVIDUAL'S BAM AND THE LIST OF ALL DETECTED SOMATIC VARIANTS IN ALL SAMPLES#
 ############################################
 
 #1. Get list of just the unique loci+allele; use these to query *ALL* individuals' bams at these coordinates, then order based on position
-  cdriver_tumor_mutations_list <- unique(cdriver_tumor_mutations[,c(2,3,4,5)])
+  cdriver_tumor_mutations_list <- unique(cdriver_tumor_mutations[,c(2,3,4,5,6)])
   cdriver_tumor_mutations_list <- cdriver_tumor_mutations_list[order(cdriver_tumor_mutations_list$Start_Position),]
 
 #2. Create dataframe for all pairwise comparisons of patient BAM and gene variants detected in somatic VCFs
@@ -58,42 +58,60 @@ cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wicklan
   rm(cdriver_tumor_mutations_list_repeated)
   
   
+  
+  #identify positions present in MAF in white but not in black
+  mutations_white <- unique(subset(cdriver_tumor_mutations, (race=='White'))[,c(2,3,4,5)])
+  mutations_black <- unique(subset(cdriver_tumor_mutations, (race=='Black'))[,c(2,3,4,5)])
+  
+  '%notin%' <- Negate('%in%')
+  mutations_white_exclusive <- mutations_white[interaction(mutations_white[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]) %notin% interaction(mutations_black[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]),]
+  
+  
+  
   #remove those patient + allele combos that are present in the MAF file
-  all_bams_all_mutations_absent_from_MAF <- all_bams_all_mutations[!interaction(all_bams_all_mutations[c('submitter_id','Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]) %in% interaction(cdriver_tumor_mutations[c('submitter_id','Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]),]
+#  all_bams_all_mutations_absent_from_MAF <- all_bams_all_mutations[!interaction(all_bams_all_mutations[c('submitter_id','Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]) %in% interaction(cdriver_tumor_mutations[c('submitter_id','Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]),]
+  
+  
+  #extract above positions from MAF file
+    all_bams_WhiteExclusive_mutations_from_MAF <- all_bams_all_mutations[interaction(all_bams_all_mutations[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]) %in% interaction(mutations_white_exclusive[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]),]
+  
+  
+  
+  
   
   
 
-#3. Read depth calculations: Count number of mapped reads of each all_bams_all_mutations_absent_from_MAF mutated position in each individual
-  variant_read_depth_bam_MPILEUP_col <- ncol(all_bams_all_mutations_absent_from_MAF)+1
-  ref_base_count_bam_col <- ncol(all_bams_all_mutations_absent_from_MAF)+2
-  alt_base_count_bam_col <- ncol(all_bams_all_mutations_absent_from_MAF)+3
-  #avg_read_mapping_quality_ref_bam_col <- ncol(all_bams_all_mutations_absent_from_MAF)+4
-  #avg_read_mapping_quality_alt_bam_col <- ncol(all_bams_all_mutations_absent_from_MAF)+5
-  avg_base_quality_ref_bam_col <- ncol(all_bams_all_mutations_absent_from_MAF)+4
-  avg_base_quality_alt_bam_col <- ncol(all_bams_all_mutations_absent_from_MAF)+5
+#3. Read depth calculations: Count number of mapped reads of each all_bams_WhiteExclusive_mutations_from_MAF mutated position in each individual
+  variant_read_depth_bam_MPILEUP_col <- ncol(all_bams_WhiteExclusive_mutations_from_MAF)+1
+  ref_base_count_bam_col <- ncol(all_bams_WhiteExclusive_mutations_from_MAF)+2
+  alt_base_count_bam_col <- ncol(all_bams_WhiteExclusive_mutations_from_MAF)+3
+  #avg_read_mapping_quality_ref_bam_col <- ncol(all_bams_WhiteExclusive_mutations_from_MAF)+4
+  #avg_read_mapping_quality_alt_bam_col <- ncol(all_bams_WhiteExclusive_mutations_from_MAF)+5
+  avg_base_quality_ref_bam_col <- ncol(all_bams_WhiteExclusive_mutations_from_MAF)+4
+  avg_base_quality_alt_bam_col <- ncol(all_bams_WhiteExclusive_mutations_from_MAF)+5
   
   
-  for (i in 1:nrow(all_bams_all_mutations_absent_from_MAF)){ 
-    print(paste(i,"/",nrow(all_bams_all_mutations_absent_from_MAF),sep=''))
+  for (i in 1:nrow(all_bams_WhiteExclusive_mutations_from_MAF)){ 
+    print(paste(i,"/",nrow(all_bams_WhiteExclusive_mutations_from_MAF),sep=''))
     
 
     #calculate read depth for REF, ALT and total using samtools mpileup
-    pileup <- system(paste("if [ -f ",sub(".bam",".bai",all_bams_all_mutations_absent_from_MAF$bam_full_path_exome[i])," ]; then /research/bsi/tools/biotools/samtools/1.9/miniconda/bin/samtools mpileup ",all_bams_all_mutations_absent_from_MAF$bam_full_path_exome[i],"--min-MQ 20 --min-BQ 0 --count-orphans --output-MQ --region ",paste(all_bams_all_mutations_absent_from_MAF$Chromosome[i],":",all_bams_all_mutations_absent_from_MAF$Start_Position[i],"-",all_bams_all_mutations_absent_from_MAF$Start_Position[i],"; else echo NA; fi",sep='')),intern=TRUE,ignore.stderr=TRUE)
+    pileup <- system(paste("if [ -f ",sub(".bam",".bai",all_bams_WhiteExclusive_mutations_from_MAF$bam_full_path_exome[i])," ]; then /research/bsi/tools/biotools/samtools/1.9/miniconda/bin/samtools mpileup ",all_bams_WhiteExclusive_mutations_from_MAF$bam_full_path_exome[i],"--min-MQ 20 --min-BQ 0 --count-orphans --output-MQ --region ",paste(all_bams_WhiteExclusive_mutations_from_MAF$Chromosome[i],":",all_bams_WhiteExclusive_mutations_from_MAF$Start_Position[i],"-",all_bams_WhiteExclusive_mutations_from_MAF$Start_Position[i],"; else echo NA; fi",sep='')),intern=TRUE,ignore.stderr=TRUE)
     
     if (length(pileup)!=0 && pileup!= 'NA'){
       variant_read_depth_bam_MPILEUP <- strsplit(pileup,'\t')[[1]][4] 
       bases <- strsplit(pileup,'\t')[[1]][5]
       bases <- gsub("[^tcgaTCGA]+","",bases) #remove $ character from list of bases; this simply; don't need to do this for the qualities b/c no. qual values is already equal to no. bases
       
-      ref_base_count_bam <- str_count(toupper(bases),toupper(as.character(all_bams_all_mutations_absent_from_MAF[i,]$Tumor_Seq_Ref))) #count number of reads with ref base in the pileup (convert all to uppercase)
-      alt_base_count_bam <- str_count(toupper(bases),toupper(as.character(all_bams_all_mutations_absent_from_MAF[i,]$Tumor_Seq_Alt))) #count number of reads with alt base in the pileup (convert all to uppercase)
+      ref_base_count_bam <- str_count(toupper(bases),toupper(as.character(all_bams_WhiteExclusive_mutations_from_MAF[i,]$Tumor_Seq_Ref))) #count number of reads with ref base in the pileup (convert all to uppercase)
+      alt_base_count_bam <- str_count(toupper(bases),toupper(as.character(all_bams_WhiteExclusive_mutations_from_MAF[i,]$Tumor_Seq_Alt))) #count number of reads with alt base in the pileup (convert all to uppercase)
       
-      all_bams_all_mutations_absent_from_MAF[i,variant_read_depth_bam_MPILEUP_col] <- variant_read_depth_bam_MPILEUP
-      all_bams_all_mutations_absent_from_MAF[i,ref_base_count_bam_col] <- ref_base_count_bam
-      all_bams_all_mutations_absent_from_MAF[i,alt_base_count_bam_col] <- alt_base_count_bam
+      all_bams_WhiteExclusive_mutations_from_MAF[i,variant_read_depth_bam_MPILEUP_col] <- variant_read_depth_bam_MPILEUP
+      all_bams_WhiteExclusive_mutations_from_MAF[i,ref_base_count_bam_col] <- ref_base_count_bam
+      all_bams_WhiteExclusive_mutations_from_MAF[i,alt_base_count_bam_col] <- alt_base_count_bam
       
-      ref_indices <- unlist(str_locate_all(toupper(bases),toupper(as.character(all_bams_all_mutations_absent_from_MAF[i,]$Tumor_Seq_Ref))))[1:ref_base_count_bam] #identify index positions of REF allele in the pileup; then get their corresponding quality scores; unlisting must be chopped in half b/c entire vector repeated once
-      alt_indices <- unlist(str_locate_all(toupper(bases),toupper(as.character(all_bams_all_mutations_absent_from_MAF[i,]$Tumor_Seq_Alt))))[1:alt_base_count_bam] #identify index positions of REF allele in the pileup; then get their corresponding quality scores; unlisting must be chopped in half b/c entire vector repeated once
+      ref_indices <- unlist(str_locate_all(toupper(bases),toupper(as.character(all_bams_WhiteExclusive_mutations_from_MAF[i,]$Tumor_Seq_Ref))))[1:ref_base_count_bam] #identify index positions of REF allele in the pileup; then get their corresponding quality scores; unlisting must be chopped in half b/c entire vector repeated once
+      alt_indices <- unlist(str_locate_all(toupper(bases),toupper(as.character(all_bams_WhiteExclusive_mutations_from_MAF[i,]$Tumor_Seq_Alt))))[1:alt_base_count_bam] #identify index positions of REF allele in the pileup; then get their corresponding quality scores; unlisting must be chopped in half b/c entire vector repeated once
       
     #  read_mapping_quality <- asc(strsplit(pileup,'\t')[[1]][7])-33
     #  avg_read_mapping_quality_ref_bam <- round(mean(read_mapping_quality[ref_indices]),digits=2)
@@ -105,47 +123,47 @@ cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wicklan
       
       
       
-    #  all_bams_all_mutations_absent_from_MAF[i,avg_read_mapping_quality_ref_bam_col] <- avg_read_mapping_quality_ref_bam
-    #  all_bams_all_mutations_absent_from_MAF[i,avg_read_mapping_quality_alt_bam_col] <- avg_read_mapping_quality_alt_bam
+    #  all_bams_WhiteExclusive_mutations_from_MAF[i,avg_read_mapping_quality_ref_bam_col] <- avg_read_mapping_quality_ref_bam
+    #  all_bams_WhiteExclusive_mutations_from_MAF[i,avg_read_mapping_quality_alt_bam_col] <- avg_read_mapping_quality_alt_bam
       
-      all_bams_all_mutations_absent_from_MAF[i,avg_base_quality_ref_bam_col] <- avg_base_quality_ref_bam
-      all_bams_all_mutations_absent_from_MAF[i,avg_base_quality_alt_bam_col] <- avg_base_quality_alt_bam
+      all_bams_WhiteExclusive_mutations_from_MAF[i,avg_base_quality_ref_bam_col] <- avg_base_quality_ref_bam
+      all_bams_WhiteExclusive_mutations_from_MAF[i,avg_base_quality_alt_bam_col] <- avg_base_quality_alt_bam
       
     }
     
     else if (length(pileup)==0 || pileup=='NA'){
-      all_bams_all_mutations_absent_from_MAF[i,variant_read_depth_bam_MPILEUP_col] <- NA
-      all_bams_all_mutations_absent_from_MAF[i,ref_base_count_bam_col] <- NA
-      all_bams_all_mutations_absent_from_MAF[i,alt_base_count_bam_col] <- NA
+      all_bams_WhiteExclusive_mutations_from_MAF[i,variant_read_depth_bam_MPILEUP_col] <- NA
+      all_bams_WhiteExclusive_mutations_from_MAF[i,ref_base_count_bam_col] <- NA
+      all_bams_WhiteExclusive_mutations_from_MAF[i,alt_base_count_bam_col] <- NA
       
       
-  #    all_bams_all_mutations_absent_from_MAF[i,avg_read_mapping_quality_ref_bam_col] <- NA
-  #    all_bams_all_mutations_absent_from_MAF[i,avg_read_mapping_quality_alt_bam_col] <- NA
-      all_bams_all_mutations_absent_from_MAF[i,avg_base_quality_ref_bam_col] <- NA
-      all_bams_all_mutations_absent_from_MAF[i,avg_base_quality_alt_bam_col] <- NA
+  #    all_bams_WhiteExclusive_mutations_from_MAF[i,avg_read_mapping_quality_ref_bam_col] <- NA
+  #    all_bams_WhiteExclusive_mutations_from_MAF[i,avg_read_mapping_quality_alt_bam_col] <- NA
+      all_bams_WhiteExclusive_mutations_from_MAF[i,avg_base_quality_ref_bam_col] <- NA
+      all_bams_WhiteExclusive_mutations_from_MAF[i,avg_base_quality_alt_bam_col] <- NA
       
     }
     
-    #total_read_depth <- system(paste("/research/bsi/tools/biotools/samtools/1.9/miniconda/bin/samtools view -c -F4",all_bams_all_mutations_absent_from_MAF$file_name_exome_bams[i]),intern=TRUE)
-    #all_bams_all_mutations_absent_from_MAF[i,total_read_depth_col] <- total_read_depth
+    #total_read_depth <- system(paste("/research/bsi/tools/biotools/samtools/1.9/miniconda/bin/samtools view -c -F4",all_bams_WhiteExclusive_mutations_from_MAF$file_name_exome_bams[i]),intern=TRUE)
+    #all_bams_WhiteExclusive_mutations_from_MAF[i,total_read_depth_col] <- total_read_depth
     i <- i + 1 #increase row
   }
   
-  colnames(all_bams_all_mutations_absent_from_MAF)[variant_read_depth_bam_MPILEUP_col] <- 'variant_read_depth_bam_MPILEUP'
-  colnames(all_bams_all_mutations_absent_from_MAF)[ref_base_count_bam_col] <- 'ref_base_count_bam'
-  colnames(all_bams_all_mutations_absent_from_MAF)[alt_base_count_bam_col] <- 'alt_base_count_bam'
-  #  colnames(all_bams_all_mutations_absent_from_MAF)[avg_read_mapping_quality_ref_bam_col] <- 'avg_read_mapping_quality_ref_bam'
-  #  colnames(all_bams_all_mutations_absent_from_MAF)[avg_read_mapping_quality_alt_bam_col] <- 'avg_read_mapping_quality_alt_bam'
-  colnames(all_bams_all_mutations_absent_from_MAF)[avg_base_quality_ref_bam_col] <- 'avg_ref_base_quality_bam'
-  colnames(all_bams_all_mutations_absent_from_MAF)[avg_base_quality_alt_bam_col] <- 'avg_alt_base_quality_bam'
+  colnames(all_bams_WhiteExclusive_mutations_from_MAF)[variant_read_depth_bam_MPILEUP_col] <- 'variant_read_depth_bam_MPILEUP'
+  colnames(all_bams_WhiteExclusive_mutations_from_MAF)[ref_base_count_bam_col] <- 'ref_base_count_bam'
+  colnames(all_bams_WhiteExclusive_mutations_from_MAF)[alt_base_count_bam_col] <- 'alt_base_count_bam'
+  #  colnames(all_bams_WhiteExclusive_mutations_from_MAF)[avg_read_mapping_quality_ref_bam_col] <- 'avg_read_mapping_quality_ref_bam'
+  #  colnames(all_bams_WhiteExclusive_mutations_from_MAF)[avg_read_mapping_quality_alt_bam_col] <- 'avg_read_mapping_quality_alt_bam'
+  colnames(all_bams_WhiteExclusive_mutations_from_MAF)[avg_base_quality_ref_bam_col] <- 'avg_ref_base_quality_bam'
+  colnames(all_bams_WhiteExclusive_mutations_from_MAF)[avg_base_quality_alt_bam_col] <- 'avg_alt_base_quality_bam'
 
 
 #4. Add additional column: alt allele concentration 
-  all_bams_all_mutations_absent_from_MAF$alt_allele_concent_bam <- as.numeric(all_bams_all_mutations_absent_from_MAF$alt_base_count_bam) / as.numeric(all_bams_all_mutations_absent_from_MAF$variant_read_depth_bam_MPILEUP)    
+  all_bams_WhiteExclusive_mutations_from_MAF$alt_allele_concent_bam <- as.numeric(all_bams_WhiteExclusive_mutations_from_MAF$alt_base_count_bam) / as.numeric(all_bams_WhiteExclusive_mutations_from_MAF$variant_read_depth_bam_MPILEUP)    
   
-system(paste0("mkdir -p /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_missing_from_MAF/",GENE))  
+system(paste0("mkdir -p /home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_WhiteExlusive_from_MAF_quered_in_all_bams/",GENE))  
 
-write.table(x=all_bams_all_mutations_absent_from_MAF,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_missing_from_MAF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_all_mutations_all_samples_absent_from_MAF_etc.txt'),sep='\t',row.names=FALSE)  
+write.table(x=all_bams_WhiteExclusive_mutations_from_MAF,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_WhiteExlusive_from_MAF_quered_in_all_bams/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_WhiteExclusive_mutations_from_MAF_queried_in_all_bams_etc.txt'),sep='\t',row.names=FALSE)  
 
 
 
