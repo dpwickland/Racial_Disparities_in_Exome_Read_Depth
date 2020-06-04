@@ -34,8 +34,8 @@ cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wicklan
 #INDIVIDUAL GENE ANALYSIS: ALL PAIRWISE COMPARISONS BETWEEN EACH INDIVIDUAL'S BAM AND THE LIST OF ALL DETECTED SOMATIC VARIANTS IN ALL SAMPLES#
 ############################################
 
-#1. Get list of just the unique loci+allele; use these to query *ALL* individuals' bams at these coordinates, then order based on position
-  cdriver_tumor_mutations_list <- unique(cdriver_tumor_mutations[,c(2,3,4,5,6)])
+#1. Get list of just the unique loci+allele; will query individuals' bams at these coordinates
+  cdriver_tumor_mutations_list <- unique(cdriver_tumor_mutations[,c(2,3,4,5)]) #based on position and allele
   cdriver_tumor_mutations_list <- cdriver_tumor_mutations_list[order(cdriver_tumor_mutations_list$Start_Position),]
 
 #2. Create dataframe for all pairwise comparisons of patient BAM and gene variants detected in somatic VCFs
@@ -72,7 +72,7 @@ cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wicklan
 #  all_bams_all_mutations_absent_from_MAF <- all_bams_all_mutations[!interaction(all_bams_all_mutations[c('submitter_id','Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]) %in% interaction(cdriver_tumor_mutations[c('submitter_id','Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]),]
   
   
-  #extract above positions from MAF file
+  #extract above positions from all_bams_all_mutations
     all_bams_WhiteExclusive_mutations_from_MAF <- all_bams_all_mutations[interaction(all_bams_all_mutations[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]) %in% interaction(mutations_white_exclusive[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]),]
   
   
