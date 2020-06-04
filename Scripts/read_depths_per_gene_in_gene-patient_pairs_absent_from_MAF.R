@@ -28,14 +28,14 @@ combined_data_ID_and_bams_list <- subset(combined_data_ID_and_bams_list, (read_d
 combined_data_ID_and_bams_list <- droplevels(combined_data_ID_and_bams_list)
 
 #load gene depths data
-cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),header=TRUE)[,c(1,2,3,5,6,24)]
+cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/gene_depths_pairs_from_MAF/',GENE,'/',CANCER_NAME,'_',GENE,'_depths_etc.txt'),header=TRUE)[,c(1,2,3,4,5,6,11,24)]
 
 ############################################
 #INDIVIDUAL GENE ANALYSIS: ALL PAIRWISE COMPARISONS BETWEEN EACH INDIVIDUAL'S BAM AND THE LIST OF ALL DETECTED SOMATIC VARIANTS IN ALL SAMPLES#
 ############################################
 
 #1. Get list of just the unique loci+allele; will query individuals' bams at these coordinates
-  cdriver_tumor_mutations_list <- unique(cdriver_tumor_mutations[,c(2,3,4,5)]) #based on position and allele
+  cdriver_tumor_mutations_list <- unique(cdriver_tumor_mutations[,c(2,3,4,5,6,7)]) #based on position and allele
   cdriver_tumor_mutations_list <- cdriver_tumor_mutations_list[order(cdriver_tumor_mutations_list$Start_Position),]
 
 #2. Create dataframe for all pairwise comparisons of patient BAM and gene variants detected in somatic VCFs
@@ -60,11 +60,11 @@ cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wicklan
   
   
   #identify positions present in MAF in white but not in black
-  mutations_white <- unique(subset(cdriver_tumor_mutations, (race=='White'))[,c(2,3,4,5)])
-  mutations_black <- unique(subset(cdriver_tumor_mutations, (race=='Black'))[,c(2,3,4,5)])
+  mutations_white <- unique(subset(cdriver_tumor_mutations, (race=='White'))[,c(2,3,4,5,6,7)])
+  mutations_black <- unique(subset(cdriver_tumor_mutations, (race=='Black'))[,c(2,3,4,5,6,7)])
   
   '%notin%' <- Negate('%in%')
-  mutations_white_exclusive <- mutations_white[interaction(mutations_white[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]) %notin% interaction(mutations_black[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]),]
+  mutations_white_exclusive <- mutations_white[interaction(mutations_white[c('Chromosome','Start_Position','End_Position','Tumor_Seq_Ref','Tumor_Seq_Alt','Variant_Type')]) %notin% interaction(mutations_black[c('Chromosome','Start_Position','End_Position','Tumor_Seq_Ref','Tumor_Seq_Alt','Variant_Type')]),]
   
   
   
@@ -73,10 +73,7 @@ cdriver_tumor_mutations <- read.table(paste0('/home/mayo/m187735/s212975.Wicklan
   
   
   #extract above positions from all_bams_all_mutations
-    all_bams_WhiteExclusive_mutations_from_MAF <- all_bams_all_mutations[interaction(all_bams_all_mutations[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]) %in% interaction(mutations_white_exclusive[c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt')]),]
-  
-  
-  
+    all_bams_WhiteExclusive_mutations_from_MAF <- all_bams_all_mutations[interaction(all_bams_all_mutations[c('Chromosome','Start_Position','End_Position','Tumor_Seq_Ref','Tumor_Seq_Alt','Variant_Type')]) %in% interaction(mutations_white_exclusive[c('Chromosome','Start_Position','End_Position','Tumor_Seq_Ref','Tumor_Seq_Alt','Variant_Type')]),]
   
   
   
