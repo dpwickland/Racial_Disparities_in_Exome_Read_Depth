@@ -19,7 +19,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 theme_set(theme_grey())
 
 
-CANCER_LIST <- c('BRCA','LUAD','UCEC','KIRC','PRAD','COAD','KIRP','GBM')#,'HNSC')
+CANCER_LIST <- c('BRCA','LUAD','UCEC','KIRC','PRAD','COAD','KIRP','GBM','HNSC')
 #GENE_LIST <- c('TP53','PIK3CA','MUC16','USH2A','TTN')
 GENE <- 'TP53'
 
@@ -250,6 +250,7 @@ dev.off()
 
 
 n_fun <- function(x){return(data.frame(y=-25,label=paste(length(x),"mt-patient pairs","\nmean:",round(mean(x),2),"reads","\nmedian:",round(median(x),2),"reads")))} #function for calculating n
+
 ggplot(subset(missing_from_MAF_melted,(race=='Black' &  variable == 'Tumor ALT (BAM)')), aes(x=factor(Cancer),y=value,fill=Cancer)) + xlab("") + ylab("Number of reads per patient") +
   geom_boxplot() +  labs(title=paste0("Number of ALT reads per Black patient\n for White-exclusive ", GENE," mutations listed in protected MAF")) + 
   theme(strip.text = element_text(size = 18,face='bold'),
@@ -259,13 +260,32 @@ ggplot(subset(missing_from_MAF_melted,(race=='Black' &  variable == 'Tumor ALT (
         axis.ticks= element_blank(), 
         plot.title = element_text(hjust=0.5,size=22,face='bold'),
         legend.position = 'bottom',legend.direction='horizontal',
-        legend.text=element_text(size=24),
+        legend.text=element_text(size=14),
         legend.title=element_blank()) + 
   guides(fill=guide_legend(nrow=1)) + 
   geom_point() + 
   stat_summary(fun.data=n_fun,geom='text',size=3.35) + #calculate n 
   ylim(-30,200) 
 
+
+
+n_fun <- function(x){return(data.frame(y=-1,label=paste(length(x),"mt-patient pairs","\nmean:",round(mean(x),2),"reads","\nmedian:",round(median(x),2),"reads")))} #function for calculating n
+
+ggplot(subset(missing_from_MAF_melted,(race=='Black' &  variable == 'Tumor ALT (BAM)')), aes(x=factor(Cancer),y=log(value,base=2),fill=Cancer)) + xlab("") + ylab("log2 Number of reads per patient") +
+  geom_boxplot() +  labs(title=paste0("Number of ALT reads per Black patient\n for White-exclusive ", GENE," mutations listed in protected MAF")) + 
+  theme(strip.text = element_text(size = 18,face='bold'),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size=18),
+        axis.title.y = element_text(size=20,face='bold',margin=margin(t=0,r=10,b=0,l=0)),
+        axis.ticks= element_blank(), 
+        plot.title = element_text(hjust=0.5,size=22,face='bold'),
+        legend.position = 'bottom',legend.direction='horizontal',
+        legend.text=element_text(size=14),
+        legend.title=element_blank()) + 
+  guides(fill=guide_legend(nrow=1)) + 
+  geom_point() + 
+  #stat_summary(fun.data=n_fun,geom='text',size=3.35) + #calculate n 
+  ylim(0,10) 
 
 
 
