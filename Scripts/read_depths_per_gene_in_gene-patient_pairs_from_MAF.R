@@ -102,7 +102,7 @@ for (CANCER_NAME in CANCER_LIST){
   names(cdriver)[ncol(cdriver)] <- 'mutation_count_for_patient'
   
   
-  #subset only the loci designated as Pathogenic in ClinVar file, if desired
+  #4.5 subset only the loci designated as Pathogenic in ClinVar file, if desired
   if (CLINVAR == 'ClinVarYes'){
   
   #extract gene from ClinVar VCF
@@ -117,6 +117,11 @@ for (CANCER_NAME in CANCER_LIST){
       cdriver <- merge(cdriver, ClinVar_Mutations, by=c('Chromosome','Start_Position','Tumor_Seq_Ref','Tumor_Seq_Alt'),all.y=TRUE)
   }
   #are any patients represented by more than one bam??????????????
+  
+  
+  #5 Extract read depths from VCF files
+  
+  
   
   
   #5. Read depth calculations: Count number of mapped reads of each cdriver mutated position in each individual
