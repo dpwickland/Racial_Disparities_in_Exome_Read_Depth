@@ -22,7 +22,7 @@ clinical_data_all$race <- gsub("not reported","Unknown",clinical_data_all$race)
 all_data <- merge(clinical_data_all, TMB, by='submitter_id')
 
 all_data <- subset(all_data, (race == 'Black' | race == 'White'))
-all_data <- subset(all_data, (Cancer == 'BRCA') | Cancer =='LUAD' | Cancer == 'COAD' | Cancer == 'PRAD' | Cancer == 'UCEC' | Cancer == 'KIRC' | Cancer == 'GBM' | Cancer == 'KIRP' | Cancer == 'HNSC')
+all_data <- subset(all_data, (Cancer == 'BRCA') | Cancer =='UCEC' | Cancer == 'KIRP' | Cancer == 'PRAD' | Cancer == 'COAD' | Cancer == 'LUAD' | Cancer == 'KIRC' | Cancer == 'HNSC' | Cancer == 'GBM' | Cancer == 'OV')
 
 
 ####################
@@ -208,12 +208,10 @@ names(Ns)[3] <- 'N'
 
 
 
-
-
 theme_set(theme_bw()) #set theme to remove gridlines
 
 all_data_jittered <- data.frame()
-for (CANCER_NAME in c("BRCA","COAD","GBM","KIRC","KIRP","LUAD","PRAD","UCEC","HNSC")){
+for (CANCER_NAME in c("BRCA","UCEC","KIRP","PRAD","COAD","LUAD","KIRC","HNSC","GBM","OV")){
   one_cancer <- subset(all_data, (Cancer==CANCER_NAME))
   
   all_races_one_cancer <- data.frame()
@@ -231,7 +229,8 @@ for (CANCER_NAME in c("BRCA","COAD","GBM","KIRC","KIRP","LUAD","PRAD","UCEC","HN
   all_data_jittered <- rbind(all_data_jittered, all_races_one_cancer)
 }
 
-
+all_data_jittered$Cancer <- factor(all_data_jittered$Cancer, levels=c("BRCA","COAD","GBM","HNSC","KIRC","KIRP","LUAD","PRAD","UCEC","OV"))
+all_data_jittered$race <- factor(all_data_jittered$race, levels=c("White","Black"))
 
 
 
@@ -316,6 +315,10 @@ ggplot(all_data_jittered, aes(y=log(nonsilent_per_Mb+.001,base=2),color=as.facto
   geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=9.65*.68, y=-12.45, label=subset(Ns,(Cancer=='UCEC' & race=='Black'))$N,size=3.25,color='black',hjust=0.5)  + 
   #geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=8.85, y=-12.45, label=subset(Ns,(Cancer=='UCEC' & race=='Asian'))$N,size=3.25,color='black',hjust=0.5) +
   
+  geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=10.35*.68, y=-12.45, label=subset(Ns,(Cancer=='OV' & race=='White'))$N,size=3.25,color='black',hjust=0.5)  +
+  geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=10.80*.68, y=-12.45, label=subset(Ns,(Cancer=='OV' & race=='Black'))$N,size=3.25,color='black',hjust=0.5)  + 
+  #geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=8.85, y=-12.45, label=subset(Ns,(Cancer=='UCEC' & race=='Asian'))$N,size=3.25,color='black',hjust=0.5) +
+  
   
   #MEDIAN
   geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=0.1, y=-13.15, label=subset(Medians,(Cancer=='BRCA' & race=='White'))$Median,size=3.25,color='black',hjust=0.5)  +
@@ -354,6 +357,10 @@ ggplot(all_data_jittered, aes(y=log(nonsilent_per_Mb+.001,base=2),color=as.facto
   geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=9.65*.68, y=-13.15, label=subset(Medians,(Cancer=='UCEC' & race=='Black'))$Median,size=3.25,color='black',hjust=0.5)  + 
   #geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=8.85, y=-13.15, label=subset(Medians,(Cancer=='UCEC' & race=='Asian'))$Median,size=3.25,color='black',hjust=0.5) +
   
+  geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=10.35*.68, y=-13.15, label=subset(Medians,(Cancer=='OV' & race=='White'))$Median,size=3.25,color='black',hjust=0.5)  +
+  geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=10.80*.68, y=-13.15, label=subset(Medians,(Cancer=='OV' & race=='Black'))$Median,size=3.25,color='black',hjust=0.5)  + 
+  #geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=8.85, y=-12.45, label=subset(Ns,(Cancer=='UCEC' & race=='Asian'))$N,size=3.25,color='black',hjust=0.5) +
+  
   
   
   
@@ -391,8 +398,12 @@ ggplot(all_data_jittered, aes(y=log(nonsilent_per_Mb+.001,base=2),color=as.facto
   #geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=8.85, y=-13.85, label=subset(SDs,(Cancer=='UCEC' & race=='Asian'))$SD,size=3.25,color='black',hjust=0.5) +
   
   geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=9.20*.68, y=-13.85, label=subset(SDs,(Cancer=='UCEC' & race=='White'))$SD,size=3.25,color='black',hjust=0.5)  +
-  geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=9.65*.68, y=-13.85, label=subset(SDs,(Cancer=='UCEC' & race=='Black'))$SD,size=3.25,color='black',hjust=0.5)  
+  geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=9.65*.68, y=-13.85, label=subset(SDs,(Cancer=='UCEC' & race=='Black'))$SD,size=3.25,color='black',hjust=0.5)  +
   #geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=8.85, y=-13.85, label=subset(SDs,(Cancer=='UCEC' & race=='Asian'))$SD,size=3.25,color='black',hjust=0.5) +
+
+geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=10.35*.68, y=-13.85, label=subset(SDs,(Cancer=='OV' & race=='White'))$SD,size=3.25,color='black',hjust=0.5)  +
+  geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=10.80*.68, y=-13.85, label=subset(SDs,(Cancer=='OV' & race=='Black'))$SD,size=3.25,color='black',hjust=0.5)  #+ 
+  #geom_text(data=subset(all_data_jittered,(Cancer=='BRCA')),x=8.85, y=-12.45, label=subset(Ns,(Cancer=='UCEC' & race=='Asian'))$N,size=3.25,color='black',hjust=0.5) +
   
   
   
