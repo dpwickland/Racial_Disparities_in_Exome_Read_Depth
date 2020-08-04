@@ -20,7 +20,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 theme_set(theme_grey())
 
 
-CANCER_LIST <- c('BRCA','LUAD','UCEC','OV','KIRC','PRAD','COAD','KIRP','GBM','HNSC')
+CANCER_LIST <- c('BRCA')#,'LUAD','UCEC','OV','KIRC','PRAD','COAD','KIRP','GBM','HNSC')
 #GENE_LIST <- c('TP53','PIK3CA','MUC16','USH2A','TTN')
 GENE <- 'TP53'
 
@@ -58,6 +58,8 @@ for (CANCER_NAME in CANCER_LIST){
   
   black_white_shared <- unique(c(white_shared_with_black, black_shared_with_white))
   shared_MAF_mutations <- all_MAF_mutations[all_MAF_mutations$Start_Position %in% black_white_shared,]
+  #remove 'mutation count per patient' - no longer accurate b/c this is subset of original dataframe
+  shared_MAF_mutations <- shared_MAF_mutations[-c(18)]
 
   
   #combine with other cancer types
@@ -213,6 +215,10 @@ dev.off()
 #function for calculating n
 n_fun <- function(x){return(data.frame(y=-1.75,label=paste(length(x),"mt-patient pairs")))} 
 
+#add column for number of mutations at locus for each race
+racial_count_per_position <- shared_MAF_mutations_master %>% group_by(race,Start_Position) %>% tally(name='Racial_count_per_position')
+
+
 #first, melt the dataframE
 from_MAF_melted <- shared_MAF_mutations_master[,c("submitter_id","Chromosome","Start_Position","End_Position","Variant_Type","race","Cancer","t_ref_count","t_alt_count","tumor_ref_base_count_bam","tumor_alt_base_count_bam")]
 from_MAF_melted <- melt(from_MAF_melted,id.vars=c("submitter_id","Chromosome","Start_Position","End_Position","Variant_Type","race","Cancer"),na.rm = TRUE)
@@ -253,6 +259,27 @@ ggplot(subset(from_MAF_melted,(variable == 'Tumor REF (MAF)' | variable == 'Tumo
 
 dev.off()
 
+#For that same set of SNPs, plot by position
+pdf(paste0("/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/plots/",GENE,"_depth_from_MAF_by_race_common_by_position.pdf"),height=8,width=13)
+
+ggplot(from_MAF_melted, aes(x=as.character(Start_Position), y=as.numeric(value),color=race,label=Start_Position)) + facet_wrap(~variable,nrow=2, ncol = 2) + #treat x axis as factor so taht only values with numbers are included
+  geom_smooth(aes(group=race,color=race),method='loess',se=FALSE,size=0.65) +
+  geom_point(size=0.85) +
+  
+  theme(strip.text = element_text(size = 18,face='bold'),
+        axis.text.x = element_text(vjust=0.5,size=12,face='bold',angle=90),
+        axis.text.y = element_text(size=18),
+        axis.title.y = element_text(size=20,face='bold',margin=margin(t=0,r=10,b=0,l=0)),
+        axis.title.x = element_text(size=20,face='bold',margin=margin(t=10,r=0,b=0,l=0)),
+        axis.ticks= element_blank(), 
+        plot.title = element_text(hjust=0.5,size=22,face='bold'),
+        legend.position = 'bottom',legend.direction='horizontal',
+        legend.text=element_text(size=24),
+        legend.background = element_rect(linetype='solid', colour='black'),
+        legend.title=element_blank()) + 
+  ggtitle("Read depth along chromosomal position in TP53") +
+  xlab("Position") + ylab("# of reads per patient") 
+dev.off()
 
 ###############################################
 #5. GENE READ-DEPTH BY RACE FOR WHITE-EXCLUSIVE MAF MUTATIONS: LOOK UP LOCI IN BAM
@@ -480,3 +507,27 @@ figure <- ggarrange(plot_BRCA,plot_UCEC,plot_KIRP,plot_PRAD,plot_COAD,plot_LUAD,
 annotate_figure(figure,top = text_grob("Total # of exome reads per sampling site for sites contributing at least 5 Black and 5 White samples",face = "bold", size = 20))
 
 dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cdriver <- add_count(cdriver, submitter_id)
+
+
+
+
+
+
+
+
