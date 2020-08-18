@@ -198,4 +198,4 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   combined_data$Cancer <- CANCER_NAME
 
 #save dataset
-write.table(x=combined_data,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/overall_depths/',CANCER_NAME,'_overall_depths_etc.txt'),sep='\t')
+write.table(x=combined_data,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/overall_depths/',CANCER_NAME,'_overall_depths_etc.txt'),sep='\t',row.names=FALSE,quote=FALSE)
