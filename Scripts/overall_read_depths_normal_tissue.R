@@ -47,7 +47,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   exome_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",exome_bams_metadata$cases)
   
   #only interested in primary solid tumor
-  exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Blood Derived Normal' | tissue.definition=='Solid Tissue Normal'))
+  exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Solid Tissue Normal'))
   
   #extract tissue source site for exome
   #extract center from barcode; must remove everything before last hyphen
@@ -168,4 +168,4 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   combined_data$Cancer <- CANCER_NAME
 
 #save dataset
-write.table(x=combined_data,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/overall_depths/',CANCER_NAME,'_overall_depths_etc_NORMAL.txt'),sep='\t',row.names=FALSE,quote=FALSE)
+write.table(x=combined_data,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/overall_depths/',CANCER_NAME,'_overall_depths_etc_NORMAL.txt'),sep='\t')
