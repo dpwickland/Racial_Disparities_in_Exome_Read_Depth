@@ -47,7 +47,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   exome_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",exome_bams_metadata$cases)
   
   #only interested in primary solid tumor
-  exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Solid Tissue Normal'))
+  exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Blood Derived Normal'))
   
   #extract tissue source site for exome
   #extract center from barcode; must remove everything before last hyphen
@@ -67,7 +67,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   RNAseq_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",RNAseq_bams_metadata$cases)
   
   #only interested in primary solid tumor
-  RNAseq_bams_metadata  <- subset(RNAseq_bams_metadata, (tissue.definition=='Solid Tissue Normal'))
+  RNAseq_bams_metadata  <- subset(RNAseq_bams_metadata, (tissue.definition=='Blood Derived Normal'))
 
 
 #8. Combine dataframes
