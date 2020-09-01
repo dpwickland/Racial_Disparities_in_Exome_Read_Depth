@@ -172,12 +172,12 @@ write.table(x=combined_data,file=paste0('/home/mayo/m187735/s212975.Wickland_Imm
 
 
 #create table of sample ID, race and tissue type
-df <- combined_data[,c('submitter_id','race','tissue.definition_exome')]
-df <- subset(df, ((race == 'White' | race == 'Black')) & tissue.definition_exome != 'Metastatic')
-df <- droplevels(df)
-table(df$race,df$tissue.definition_exome)
-df$num <- "YES"
-df <- reshape2::dcast(df, submitter_id + race ~ tissue.definition_exome, value.var = "num")
-write.table(df,'/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/exome_bams_by_tissue_type.txt',sep='\t',row.names=FALSE,quote=FALSE)
+#df <- combined_data[,c('submitter_id','race','tissue.definition_exome')]
+#df <- subset(df, ((race == 'White' | race == 'Black')) & tissue.definition_exome != 'Metastatic')
+#df <- droplevels(df)
+#table(df$race,df$tissue.definition_exome)
+#df$num <- "YES"
+#df <- reshape2::dcast(df, submitter_id + race ~ tissue.definition_exome, value.var = "num")
+#write.table(df,'/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/exome_bams_by_tissue_type.txt',sep='\t',row.names=FALSE,quote=FALSE)
 
 
