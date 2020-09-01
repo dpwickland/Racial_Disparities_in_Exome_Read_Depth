@@ -46,8 +46,8 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   exome_bams_metadata <- read.table(paste('/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/exome_bams/',CANCER_NAME,'_bams_metadata.txt',sep=''),header=TRUE)
   exome_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",exome_bams_metadata$cases)
   
-  #only interested in primary solid tumor
-  exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Blood Derived Normal'))
+  #SELECT TISSUE TYPE OF INTEREST
+  #exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Blood Derived Normal'))
   
   #extract tissue source site for exome
   #extract center from barcode; must remove everything before last hyphen
@@ -67,7 +67,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   RNAseq_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",RNAseq_bams_metadata$cases)
   
   #only interested in primary solid tumor
-  RNAseq_bams_metadata  <- subset(RNAseq_bams_metadata, (tissue.definition=='Blood Derived Normal'))
+ # RNAseq_bams_metadata  <- subset(RNAseq_bams_metadata, (tissue.definition=='Blood Derived Normal'))
 
 
 #8. Combine dataframes
@@ -169,3 +169,15 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 
 #save dataset
 write.table(x=combined_data,file=paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/processing/TCGA/processed_data/overall_depths/',CANCER_NAME,'_overall_depths_etc_NORMAL.txt'),sep='\t',row.names=FALSE,quote=FALSE)
+
+
+#create table of sample ID, race and tissue type
+df <- combined_data[,c('submitter_id','race','tissue.definition_exome')]
+df <- subset(df, ((race == 'White' | race == 'Black')) & tissue.definition_exome != 'Metastatic')
+df <- droplevels(df)
+table(df$race,df$tissue.definition_exome)
+df$num <- "YES"
+df <- reshape2::dcast(df, submitter_id + race ~ tissue.definition_exome, value.var = "num")
+write.table(df,'/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/exome_bams_by_tissue_type.txt',sep='\t',row.names=FALSE,quote=FALSE)
+
+
