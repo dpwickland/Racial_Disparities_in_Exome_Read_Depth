@@ -47,7 +47,7 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   exome_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",exome_bams_metadata$cases)
   
   #SELECT TISSUE TYPE OF INTEREST
-  #exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Blood Derived Normal'))
+  exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Blood Derived Normal' | tissue.definition=='Solid Tissue Normal'))
   
   #extract tissue source site for exome
   #extract center from barcode; must remove everything before last hyphen
@@ -60,14 +60,6 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   TSS <- read.table('/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/tissue_source_site.txt', header=TRUE)
   exome_bams_metadata <- merge(exome_bams_metadata, TSS, by='TSS_Code', all.x=TRUE)
   rm(TSS)
-
-#7. Retrieve read depths of RNA-seq bams; read depths calculated by the script ***calc_read_depths_in_batches.txt***
-  #Get metadata for all bams 
-  RNAseq_bams_metadata <- read.table(paste('/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/RNAseq_bams/',CANCER_NAME,'_RNAseq_bams_metadata.txt',sep=''),header=TRUE)
-  RNAseq_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",RNAseq_bams_metadata$cases)
-  
-  #only interested in primary solid tumor
- # RNAseq_bams_metadata  <- subset(RNAseq_bams_metadata, (tissue.definition=='Blood Derived Normal'))
 
 
 #8. Combine dataframes
@@ -86,32 +78,12 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   combined_data_exome <- merge(combined_data_exome_tmp, combined_data_exome, by=c("submitter_id",names(combined_data_exome)[2]))
   rm (combined_data_exome_tmp)
   
-  #combine RNAseq bams metadata with tumor expression data;keep all reads for subsequent merging with RNA-seq metadata
-  combined_data_RNAseq <- merge(RNAseq_bams_metadata,read_depths,by='file_name')
-  #remove unnecessary columns
-  combined_data_RNAseq <- combined_data_RNAseq[-c(1,2,3,4)]
-  #add suffix to columns
-  names(combined_data_RNAseq) <- c(paste(names(combined_data_RNAseq)[1]),paste(names(combined_data_RNAseq[,c(-1)]),'_RNAseq',sep=''))
-  rm(RNAseq_bams_metadata)
-  rm(read_depths)
-  
-  #if any patient ID is duplicated, keep row/sample with highest read depth
-  combined_data_RNAseq_tmp <- aggregate(combined_data_RNAseq[,2] ~ combined_data_RNAseq[,1], combined_data_RNAseq, max)
-  names(combined_data_RNAseq_tmp) <- c("submitter_id",names(combined_data_RNAseq)[2])  
-  combined_data_RNAseq <- merge(combined_data_RNAseq_tmp, combined_data_RNAseq, by=c("submitter_id",names(combined_data_RNAseq)[2]))
-  rm (combined_data_RNAseq_tmp)
-  
-  #combine both bams+metadata dataframes
-  combined_data <- merge(combined_data_exome,combined_data_RNAseq, by='submitter_id',all=TRUE)
-  rm(combined_data_exome)
-  rm(combined_data_RNAseq)
-  
-
   #shorten case ID and remove any IDs that have duplicates
+  combined_data <- combined_data_exome
   combined_data$submitter_id_long <- combined_data$submitter_id
   combined_data$submitter_id <- sub("^([^-]*-[^-]*-[^-]*).*", "\\1",combined_data$submitter_id)
   
-  combined_data <- combined_data[,c(1,3,4,5,6,7,8,2,9)]
+  combined_data <- combined_data[,c(1,3,4,5,6,7,2)]
 
   #merge with clinical data 
   combined_data <- merge(all_clinical_data,combined_data, by='submitter_id')
@@ -147,6 +119,9 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   combined_data$tumor_stage[combined_data$tumor_stage=="stage iv"] <- "Stage IV"
   combined_data$tumor_stage[combined_data$tumor_stage=="not reported"] <- NA
   combined_data$tumor_stage[combined_data$tumor_stage=="stage x"] <- NA
+  
+  #remove spaces from tissue definition
+  combined_data$tissue.definition_exome <- gsub(" ","_",combined_data$tissue.definition_exome)
   
   
   #create log columns for TIL regional fraction, MANTIS score
