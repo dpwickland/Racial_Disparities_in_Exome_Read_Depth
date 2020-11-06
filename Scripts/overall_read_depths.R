@@ -13,7 +13,7 @@ if (length(args)!=1) {
 }
 
 #load libraries
-.libPaths(c( .libPaths(), "/home/mayo/m187735/R", "/usr/local/biotools/rpackages/R-3.5.2-latest",  "/usr/local/biotools/r/R-3.5.2/lib64/R/library"))
+.libPaths(c( .libPaths(), "/home/mayo/m187735/R", "/usr/local/biotools/rpackages/R-3.5.2-latest", "/usr/local/biotools/rpackages/R-3.6.2-latest", "/usr/local/biotools/r/R-3.5.2/lib64/R/library"))
 library(plyr)
 library(dplyr)
 library(readr)
@@ -64,8 +64,8 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   exome_bams_metadata <- read.table(paste('/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/exome_bams/',CANCER_NAME,'_bams_metadata.txt',sep=''),header=TRUE)
   exome_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",exome_bams_metadata$cases)
   
-  #only interested in primary solid tumor
-  exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Primary solid Tumor'))
+  #only interested in primary solid tumor or blood derived normal
+  exome_bams_metadata  <- subset(exome_bams_metadata, (tissue.definition=='Primary solid Tumor' | tissue.definition=='Blood Derived Normal'))
   
   #extract tissue source site for exome
   #extract center from barcode; must remove everything before last hyphen
@@ -81,11 +81,11 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 
 #7. Retrieve read depths of RNA-seq bams; read depths calculated by the script ***calc_read_depths_in_batches.txt***
   #Get metadata for all bams 
-  RNAseq_bams_metadata <- read.table(paste('/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/RNAseq_bams/',CANCER_NAME,'_RNAseq_bams_metadata.txt',sep=''),header=TRUE)
-  RNAseq_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",RNAseq_bams_metadata$cases)
+#  RNAseq_bams_metadata <- read.table(paste('/home/mayo/m187735/s212975.Wickland_Immunomics/TCGA_metadata/RNAseq_bams/',CANCER_NAME,'_RNAseq_bams_metadata.txt',sep=''),header=TRUE)
+#  RNAseq_bams_metadata$submitter_id <- sub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",RNAseq_bams_metadata$cases)
   
   #only interested in primary solid tumor
-  RNAseq_bams_metadata  <- subset(RNAseq_bams_metadata, (tissue.definition=='Primary solid Tumor'))
+#  RNAseq_bams_metadata  <- subset(RNAseq_bams_metadata, (tissue.definition=='Primary solid Tumor' | tissue.definition=='Blood_Derived_Normal'))
 
 
 #8. Combine dataframes
@@ -93,8 +93,8 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   combined_data_exome <- merge(exome_bams_metadata,read_depths,by='file_name')
   rm(exome_bams_metadata)
   #remove unnecessary columns
-  combined_data_exome <- combined_data_exome[-c(1,2,3,4,5)]
-  combined_data_exome <- combined_data_exome[,c(1,4,5,3,2)]
+  combined_data_exome <- combined_data_exome[-c(1,2,3,4)]
+  combined_data_exome <- combined_data_exome[,c(2,5,6,4,3,1)]
   #add suffix to columns
   names(combined_data_exome) <- c(paste(names(combined_data_exome)[1]),paste(names(combined_data_exome[,c(-1)]),'_exome',sep=''))
   
@@ -105,24 +105,25 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   rm (combined_data_exome_tmp)
   
   #combine RNAseq bams metadata with tumor expression data;keep all reads for subsequent merging with RNA-seq metadata
-  combined_data_RNAseq <- merge(RNAseq_bams_metadata,read_depths,by='file_name')
+#  combined_data_RNAseq <- merge(RNAseq_bams_metadata,read_depths,by='file_name')
   #remove unnecessary columns
-  combined_data_RNAseq <- combined_data_RNAseq[-c(1,2,3,4)]
+#  combined_data_RNAseq <- combined_data_RNAseq[-c(1,2,3,4)]
   #add suffix to columns
-  names(combined_data_RNAseq) <- c(paste(names(combined_data_RNAseq)[1]),paste(names(combined_data_RNAseq[,c(-1)]),'_RNAseq',sep=''))
-  rm(RNAseq_bams_metadata)
-  rm(read_depths)
+#  names(combined_data_RNAseq) <- c(paste(names(combined_data_RNAseq)[1]),paste(names(combined_data_RNAseq[,c(-1)]),'_RNAseq',sep=''))
+#  rm(RNAseq_bams_metadata)
+#  rm(read_depths)
   
   #if any patient ID is duplicated, keep row/sample with highest read depth
-  combined_data_RNAseq_tmp <- aggregate(combined_data_RNAseq[,2] ~ combined_data_RNAseq[,1], combined_data_RNAseq, max)
-  names(combined_data_RNAseq_tmp) <- c("submitter_id",names(combined_data_RNAseq)[2])  
-  combined_data_RNAseq <- merge(combined_data_RNAseq_tmp, combined_data_RNAseq, by=c("submitter_id",names(combined_data_RNAseq)[2]))
-  rm (combined_data_RNAseq_tmp)
+#  combined_data_RNAseq_tmp <- aggregate(combined_data_RNAseq[,2] ~ combined_data_RNAseq[,1], combined_data_RNAseq, max)
+#  names(combined_data_RNAseq_tmp) <- c("submitter_id",names(combined_data_RNAseq)[2])  
+#  combined_data_RNAseq <- merge(combined_data_RNAseq_tmp, combined_data_RNAseq, by=c("submitter_id",names(combined_data_RNAseq)[2]))
+#  rm (combined_data_RNAseq_tmp)
   
   #combine both bams+metadata dataframes
-  combined_data <- merge(combined_data_exome,combined_data_RNAseq, by='submitter_id',all=TRUE)
+  #combined_data <- merge(combined_data_exome,combined_data_RNAseq, by='submitter_id',all=TRUE)
+  combined_data <- combined_data_exome
   rm(combined_data_exome)
-  rm(combined_data_RNAseq)
+ # rm(combined_data_RNAseq)
   
   #combined with tumor purity data
   combined_data <- merge(combined_data, tumor_purity_data, by='submitter_id',all.x=TRUE)
@@ -132,19 +133,23 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   combined_data$submitter_id_long <- combined_data$submitter_id
   combined_data$submitter_id <- sub("^([^-]*-[^-]*-[^-]*).*", "\\1",combined_data$submitter_id)
   
+ 
   #if any patient ID is duplicated, keep row/sample with highest tumor purity value (most pairs have just one member with a tumor purity value anyway)
-  combined_data_tmp <- aggregate(combined_data[,8] ~ combined_data[,1], combined_data, max)
-  names(combined_data_tmp) <- c("submitter_id",names(combined_data)[8])  
-  combined_data <- merge(combined_data_tmp, combined_data, by=c("submitter_id",names(combined_data)[8]))
-  combined_data <- combined_data[,c(1,3,4,5,6,7,8,2,9)]
+  combined_data_tmp <- aggregate(combined_data[,7] ~ combined_data[,8], combined_data, max)
+  names(combined_data_tmp) <- c("submitter_id_long",names(combined_data)[7])  
+  combined_data <- merge(combined_data_tmp, combined_data, by=c("submitter_id_long",names(combined_data)[7]),all.y=TRUE)
+  combined_data <- combined_data[,c(1,3,4,5,6,7,2,8)]
   rm(combined_data_tmp)
+  
+  #also, barcode must end in 01A or 10A
+  combined_data <- combined_data %>% filter(str_detect(combined_data$submitter_id_long, "-01A|-10A"))
   
   #merge with MSI data
   #combined_data <- merge(combined_data, MSI_Bonneville, by='submitter_id')
   #rm(MSI_Bonneville)
   
   #merge with clinical data 
-  combined_data <- merge(all_clinical_data,combined_data, by='submitter_id')
+  combined_data <- merge(combined_data,all_clinical_data, by='submitter_id',all.x=TRUE)
   rm(all_clinical_data)
   
   #merge with immune data
@@ -161,6 +166,11 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
   combined_data$race[combined_data$race=="american indian or alaska native"] <- "Native"
   combined_data$race[combined_data$race=="not reported"] <- "Unknown"
   combined_data <- subset(combined_data, (race=="White") | (race=="Black") | (race=="Asian") | (race=="Unknown"))
+  
+  #tissue type
+  combined_data$tissue.definition_exome <- sub("Blood Derived Normal","Blood_Normal",combined_data$tissue.definition_exome)
+  combined_data$tissue.definition_exome <- sub("Primary solid Tumor","Primary_Tumor",combined_data$tissue.definition_exome)
+  
   
   #consolidate tumor stage
   combined_data$tumor_stage <- as.character(combined_data$tumor_stage)
