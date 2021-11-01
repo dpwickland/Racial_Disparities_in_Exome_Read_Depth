@@ -69,14 +69,17 @@ for (i in (1:N_ROWS)){
   #isolate gene name
   ROW$Gene <- str_extract(ROW$INFO, "(?<=Gene.refGene=)[^;]*(?=;|$)")
   
+  #isolate MQ
+  ROW$MQ <- str_extract(ROW$INFO, "(?<=MQ=)[^;]*(?=;|$)")
+  
   #isolate population allele freqs of interest and rearrange
   ROW$EUR_1kGenomes <- str_extract(ROW$INFO, "(?<=EUR.sites.2015_08=)[^;]*(?=;|$)")
   ROW$AFR_1kGenomes <- str_extract(ROW$INFO, "(?<=AFR.sites.2015_08=)[^;]*(?=;|$)")
   
-  ROW <- ROW[,c(1:4,6,(ncol(ROW)-3):ncol(ROW),7:(ncol(ROW)-4))]
+  ROW <- ROW[,c(1:4,6,(ncol(ROW)-4):ncol(ROW),7:(ncol(ROW)-5))]
   
   #create dataframe of samples only
-  ALL_PATIENTS <- ROW[,c(10:ncol(ROW))]
+  ALL_PATIENTS <- ROW[,c(11:ncol(ROW))]
   
   #calculate number of samples (for race) that are homo ref, hetero, homo alt, missing
   ROW$count_all_patients <- length(ALL_PATIENTS)
