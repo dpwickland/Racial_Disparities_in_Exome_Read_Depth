@@ -8,6 +8,7 @@ library(ggpubr)
 library(tidyr)
 library(stringr)
 library(plyr)
+library(ggforce)
 library(lemon)
 library(dplyr)
 library(ggpubr)
@@ -56,9 +57,14 @@ PLOT_BY_RACE_AND_SAMPLING_SITE <- function(MAPPED_READS_OR_ALL_READS,CANCER_TYPE
   #remove entries that have no exome data; some in dataframes have RNA-seq but no exome
   master_table_master <- subset(master_table_master, (bam_full_path != 'NA'))
   
-  #set order for race 
-  master_table_master <- subset(master_table_master, (race_PCA == 'White' | race_PCA == 'Black'))
-  master_table_master$race_PCA <- factor(master_table_master$race_PCA, levels = c("White","Black"),ordered=TRUE)
+
+  
+  #rename Black and WHite
+  master_table_master$race_PCA <- gsub("White","European",master_table_master$race_PCA)
+  master_table_master$race_PCA <- gsub("Black","African",master_table_master$race_PCA)
+  
+  #set order for race/ancestry
+  master_table_master$race_PCA <- factor(master_table_master$race_PCA, levels = c("European","African"),ordered=TRUE)
   
   #rename tissue type and set order
   master_table_master$tissue.definition <- sub("Blood_Normal","Patient Germline",master_table_master$tissue.definition)
@@ -93,6 +99,11 @@ PLOT_BY_RACE_AND_SAMPLING_SITE <- function(MAPPED_READS_OR_ALL_READS,CANCER_TYPE
 ALL_READS_FOR_PLOTTING <- unique(PLOT_BY_RACE_AND_SAMPLING_SITE('all_reads','all','exome'))
 MAPPED_READS_FOR_PLOTTING <- unique(PLOT_BY_RACE_AND_SAMPLING_SITE('mapped_reads','all','exome'))
 UNMAPPED_READS_FOR_PLOTTING <- unique(PLOT_BY_RACE_AND_SAMPLING_SITE('unmapped_reads','all','exome'))
+
+
+#for unmapped, need to use the same bams as those used in all_reads and mapped_reads (b/c for those two, for replicate bams, used the one with highest depth -- but the one with highest may be diff in unmapped
+UNMAPPED_READS_FOR_PLOTTING <- UNMAPPED_READS_FOR_PLOTTING[UNMAPPED_READS_FOR_PLOTTING$bam_full_path %in% ALL_READS_FOR_PLOTTING$bam_full_path,]
+
 
 SeqCapV2_BRCA_READS_FOR_PLOTTING <- unique(PLOT_BY_RACE_AND_SAMPLING_SITE('mapped_reads_within_nimblegen_SeqCap_EZ_Exome_v2_hg38liftover_SORTED','BRCA','exome'))
 SeqCapV3_BRCA_READS_FOR_PLOTTING <- unique(PLOT_BY_RACE_AND_SAMPLING_SITE('mapped_reads_within_nimblegen_SeqCap_EZ_Exome_v3_hg19_capture_targets_hg38liftover_SORTED','BRCA','exome'))
@@ -138,13 +149,14 @@ CAPTURE_TABLE <- subset(CAPTURE_TABLE, number_of_samples != 0)
 CAPTURE_TABLE <- CAPTURE_TABLE %>% spread(tissue.definition,number_of_samples)
 
 
-CAPTURE_TABLE_WHITE <- subset(CAPTURE_TABLE, race_PCA=='White')
-names(CAPTURE_TABLE_WHITE)[4:5] <-c( "Primary Tumor White","Patient Germline White")
+CAPTURE_TABLE_WHITE <- subset(CAPTURE_TABLE, race_PCA=='European')
+names(CAPTURE_TABLE_WHITE)[4:5] <-c( "Primary Tumor European","Patient Germline European")
 
-CAPTURE_TABLE_BLACK <- subset(CAPTURE_TABLE, race_PCA=='Black')
-names(CAPTURE_TABLE_BLACK)[4:5] <-c( "Primary Tumor Black","Patient Germline Black")
+CAPTURE_TABLE_BLACK <- subset(CAPTURE_TABLE, race_PCA=='African')
+names(CAPTURE_TABLE_BLACK)[4:5] <-c( "Primary Tumor African","Patient Germline African")
 
 CAPTURE_TABLE <- merge(CAPTURE_TABLE_WHITE[-c(2)],CAPTURE_TABLE_BLACK[-c(2)],by=c('Cancer','CAPTURE_KIT_FIXED'),all=TRUE)
+
 
 CAPTURE_TABLE$CAPTURE_KIT_simp <-  ifelse(grepl('hg18',CAPTURE_TABLE$CAPTURE_KIT_FIXED),'NimbleGen hg18 Exome v2',ifelse(grepl('v3.0',CAPTURE_TABLE$CAPTURE_KIT_FIXED),'NimbleGen SeqCap EZ Exome v3',ifelse(grepl('v2.0',CAPTURE_TABLE$CAPTURE_KIT_FIXED),'NimbleGen SeqCap EZ Exome v2',ifelse(grepl('V2.0',CAPTURE_TABLE$CAPTURE_KIT_FIXED),'NimbleGen SeqCap EZ Exome v2',ifelse(grepl('Custom',CAPTURE_TABLE$CAPTURE_KIT_FIXED),'Custom V2 Exome Bait',ifelse(grepl('Gapfiller',CAPTURE_TABLE$CAPTURE_KIT_FIXED),'Gapfiller_7m',ifelse(grepl('Rome',CAPTURE_TABLE$CAPTURE_KIT_FIXED),'Roche SeqCap EZ HGSC VCRome',ifelse(grepl('SureSelect',CAPTURE_TABLE$CAPTURE_KIT_FIXED),'Agilent SureSelect Human All Exon v2','Not reported'))))))))  
 
@@ -176,14 +188,14 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE <- function(MAPPED_READS_OR_ALL_READS,FIG_NUMBE
   
   
   #create labels for the annotated text below each facet row
-  tumor_label_counts <- data.frame(race_PCA='White',tissue.definition=c('Primary Tumor'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),label=c('n','','','','','',''))
+  tumor_label_counts <- data.frame(race_PCA='European',tissue.definition=c('Primary Tumor'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),label=c('n','','','','','',''))
   tumor_label_counts$Cancer <- factor(tumor_label_counts$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
-  germline_label_counts <- data.frame(race_PCA='White',tissue.definition=c('Patient Germline'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),label=c('n','','','','','',''))
+  germline_label_counts <- data.frame(race_PCA='European',tissue.definition=c('Patient Germline'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),label=c('n','','','','','',''))
   germline_label_counts$Cancer <- factor(germline_label_counts$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
   
-  tumor_label_mean <- data.frame(race_PCA='White',tissue.definition=c('Primary Tumor'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),label=c('bar(x)','','','','','',''))
+  tumor_label_mean <- data.frame(race_PCA='European',tissue.definition=c('Primary Tumor'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),label=c('bar(x)','','','','','',''))
   tumor_label_mean$Cancer <- factor(tumor_label_mean$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
-  germline_label_mean <- data.frame(race_PCA='White',tissue.definition=c('Patient Germline'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),label=c('bar(x)','','','','','',''))
+  germline_label_mean <- data.frame(race_PCA='European',tissue.definition=c('Patient Germline'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),label=c('bar(x)','','','','','',''))
   germline_label_mean$Cancer <- factor(germline_label_mean$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
   
   DF_TO_PLOT$Cancer <- factor(DF_TO_PLOT$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
@@ -206,6 +218,7 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE <- function(MAPPED_READS_OR_ALL_READS,FIG_NUMBE
           plot.title = element_text(hjust=0.5,size=30,face='bold',margin=margin(t=0,r=0,b=15,l=0)),
           legend.position = 'bottom',legend.direction='horizontal',
           legend.text=element_text(size=34),
+          legend.key.size = unit(2.5,"line"),
           legend.background = element_rect(linetype='solid', colour='black'),
           legend.title=element_blank()) + 
     #geom_point() +
@@ -244,12 +257,12 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE <- function(MAPPED_READS_OR_ALL_READS,FIG_NUMBE
     {if(MAPPED_READS_OR_ALL_READS=='unmapped_reads') {coord_cartesian(ylim=c(5500,35000000),clip='off') }}    +  
     
     
-    scale_fill_manual(values=c('#EF5350','#42A5F5')) + #MANUALLY SET FILL COLORS  
+    scale_fill_manual(values=c('#EF5350','#42A5F5'),labels=c('European ','African ')) + #MANUALLY SET FILL COLORS
     
     
     #means comparisons
     stat_compare_means(size=7,method='wilcox.test',mapping=aes(label=..p.signif..),
-                       comparisons = list(c("Black","White")),bracket.size = NA,tip.length = 0,color='black',
+                       comparisons = list(c("African","European")),bracket.size = NA,tip.length = 0,color='black',
                        #label.y=400000000, #adjust position of p-value
                        symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1,100), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", "",""))) + 
     
@@ -305,16 +318,17 @@ Tumor_Purity <- ggplot(MAPPED_READS_FOR_PLOTTING, aes(fill=race_PCA,x=race_PCA, 
         legend.position = 'bottom',legend.direction='horizontal',
         legend.background = element_rect(linetype='solid', colour='black'),
         legend.text=element_text(size=34),        
+        legend.key.size = unit(2.5,"line"),
         legend.title=element_blank()) + #labs(tag = "C.") +
   
   
   
   #coord_cartesian(ylim = c(0,1.35))+
-  scale_fill_manual(values=c('#EF5350','#42A5F5')) + #MANUALLY SET FILL COLORS
+  scale_fill_manual(values=c('#EF5350','#42A5F5'),labels=c('European ','African ')) + #MANUALLY SET FILL COLORS
   scale_color_manual(values='orange') + 
-  #means comparisons
+
   stat_compare_means(size=7,method='wilcox.test',mapping=aes(label=..p.signif..),
-                     comparisons = list(c("Black","White")),bracket.size = NA,tip.length = 0,color='black',
+                     comparisons = list(c("African","European")),bracket.size = NA,tip.length = 0,color='black',
                      #label.y=400000000, #adjust position of p-value
                      symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) +
   expand_limits(y=-0.065) + scale_y_continuous(breaks=c(0,0.50,1),expand = expansion(mult = c(0.07, 0.30))) + 
@@ -381,13 +395,13 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_CENTER <- function(MAPPED_READS_OR_ALL_READ
     dplyr::summarise(number_of_samples=dplyr::n()) 
   
   seq_site_counts <- seq_site_counts %>% spread(race_PCA, number_of_samples)
-  seq_site_counts <- subset(seq_site_counts, (Black >= 5 & White >= 5))
+  seq_site_counts <- subset(seq_site_counts, (African >= 5 & European >= 5))
   
   seq_site <- seq_site[paste(seq_site$Cancer, seq_site$Sequencing_Center_number, seq_site$tissue.definition) %in% paste(seq_site_counts$Cancer, seq_site_counts$Sequencing_Center_number, seq_site_counts$tissue.definition),]
   
-  seq_site$Race_tissue <- ifelse(seq_site$race_PCA=='Black' & seq_site$tissue.definition=='Primary Tumor','Black tumor',ifelse(seq_site$race_PCA=='White' & seq_site$tissue.definition=='Primary Tumor','White tumor',ifelse(seq_site$race_PCA=='Black' & seq_site$tissue.definition=='Patient Germline','Black germline',ifelse(seq_site$race_PCA=='White' & seq_site$tissue.definition=='Patient Germline','White germline',NA))))
+  seq_site$Race_tissue <- ifelse(seq_site$race_PCA=='African' & seq_site$tissue.definition=='Primary Tumor','African tumor',ifelse(seq_site$race_PCA=='European' & seq_site$tissue.definition=='Primary Tumor','European tumor',ifelse(seq_site$race_PCA=='African' & seq_site$tissue.definition=='Patient Germline','African germline',ifelse(seq_site$race_PCA=='European' & seq_site$tissue.definition=='Patient Germline','European germline',NA))))
   
-  seq_site$Race_tissue <- factor(seq_site$Race_tissue, levels=c('White tumor','Black tumor','White germline','Black germline'),ordered=TRUE)
+  seq_site$Race_tissue <- factor(seq_site$Race_tissue, levels=c('European tumor','African tumor','European germline','African germline'),ordered=TRUE)
   
   
   
@@ -420,7 +434,7 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_CENTER <- function(MAPPED_READS_OR_ALL_READ
     SEQSITES_site_plot <- ggplot(SEQSITES_site, aes(x=factor(Race_tissue), y=read_depth,fill=Race_tissue)) + xlab("") + ylab("") + facet_grid(Sequencing_Center_number~Cancer,scales='free',drop=FALSE) + #in 'fill' argument can change factor order
       
       geom_violin() + geom_sina(size=0.4) +  stat_summary(geom='crossbar',fun='median',color='white',fatten=6,width=0.35) + guides(fill = guide_legend(override.aes = list(linetype = 0))) + 
-      theme(plot.margin=unit(c(-0.5,SCALE,-0.5,0), "cm"),
+      theme(plot.margin=unit(c(-0.5,SCALE,0.25,0), "cm"),
             plot.title = element_text(size=46,hjust=0.5),
             strip.text.x = element_text(size=40),
             strip.text.y = element_text(size=40),
@@ -433,7 +447,9 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_CENTER <- function(MAPPED_READS_OR_ALL_READ
             panel.background = element_rect(color = 'black',fill=NA),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
-            legend.spacing.x=unit(0.65,"cm"),
+            panel.spacing=unit(4, "cm"),
+            panel.spacing.x=unit(1, "cm"),
+            legend.spacing.x=unit(0.20,"cm"),
             legend.key.size = unit(4,"line"),
             legend.text=element_text(size=27), legend.title=element_blank(),
             legend.background = element_rect(linetype='solid', colour='black')) + guides(color = guide_legend(override.aes = list(size=30))) +
@@ -446,16 +462,16 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_CENTER <- function(MAPPED_READS_OR_ALL_READ
       #    geom_point() + #stat_summary(fun.data=n_fun,geom='text',size=11) + #calculate n
       
       stat_compare_means(size=11,method='wilcox.test',mapping=aes(label=..p.signif..),
-                         comparisons = list(c("Black tumor","White tumor")),bracket.size = NA,tip.length = 0,color='black',
+                         comparisons = list(c("African tumor","European tumor")),bracket.size = NA,tip.length = 0,color='black',
                          symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) +
       
       stat_compare_means(size=11,method='wilcox.test',mapping=aes(label=..p.signif..),
-                         comparisons = list(c("Black germline","White germline")),bracket.size = NA,tip.length = 0,color='black',
+                         comparisons = list(c("African germline","European germline")),bracket.size = NA,tip.length = 0,color='black',
                          symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) +
       
       
       scale_y_continuous(expand = expansion(mult = c(0.07, 0.235)),labels=unit_format(unit = "",scale = 1e-6,accuracy=1),trans=pseudo_log_trans(base=2),breaks = c(25000000,50000000,100000000,200000000,400000000)) +  scale_x_discrete(drop=FALSE) + #drop false to keep blank spots
-      scale_fill_manual(values=c('#EF5350','#42A5F5','#FFCDD2','#BBDEFB'),labels=c('White tumor  ','Black tumor  ','White germline  ','Black germline   ')) + #MANUALLY SET FILL COLORS 
+      scale_fill_manual(values=c('#EF5350','#42A5F5','#FFCDD2','#BBDEFB'),labels=c('European tumor  ','African tumor  ','European germline   ','African germline   ')) + #MANUALLY SET FILL COLORS 
       
       
       
@@ -487,9 +503,11 @@ SEQ_CENTER_MAPPED_READS <- PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_CENTER('mapped_r
 #dev.off()
 
 #OUTPUT FIGURE S3
-png(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/GitHub/Racial_Disparities_in_Exome_Read_Depth/MS_plots/FIGS3.png'),height=20,width=15,res=500,units='in')
+png(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/GitHub/Racial_Disparities_in_Exome_Read_Depth/MS_plots/FIGS3.png'),height=20,width=16,res=500,units='in')
 ggarrange(SEQ_CENTER_MAPPED_READS)
 dev.off()
+
+
 
 
 
@@ -524,7 +542,7 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_SITE <- function(MAPPED_READS_OR_ALL_READS)
   
   #'spread' the data and only keep centers with at least 5 black and at least 5 white samples
   source_site_counts <- source_site_counts %>% spread(race_PCA, number_of_samples)
-  source_site_counts <- data.frame(subset(source_site_counts, (Black >= 5 & White >= 5)))
+  source_site_counts <- data.frame(subset(source_site_counts, (African >= 5 & European >= 5)))
   
   #replace source site levels with numbers, to de-identify
   source_site_numbers <- data.frame(unique(source_site_counts$Source_Site))
@@ -538,9 +556,9 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_SITE <- function(MAPPED_READS_OR_ALL_READS)
   
   
   #new column containing race_PCA and tissue
-  source_site$Race_tissue <- ifelse(source_site$race_PCA=='Black' & source_site$tissue.definition=='Primary Tumor','Black tumor',ifelse(source_site$race_PCA=='White' & source_site$tissue.definition=='Primary Tumor','White tumor',ifelse(source_site$race_PCA=='Black' & source_site$tissue.definition=='Patient Germline','Black germline',ifelse(source_site$race_PCA=='White' & source_site$tissue.definition=='Patient Germline','White germline',NA))))
+  source_site$Race_tissue <- ifelse(source_site$race_PCA=='African' & source_site$tissue.definition=='Primary Tumor','African tumor',ifelse(source_site$race_PCA=='European' & source_site$tissue.definition=='Primary Tumor','European tumor',ifelse(source_site$race_PCA=='African' & source_site$tissue.definition=='Patient Germline','African germline',ifelse(source_site$race_PCA=='European' & source_site$tissue.definition=='Patient Germline','European germline',NA))))
   
-  source_site$Race_tissue <- factor(source_site$Race_tissue, levels=c('White tumor','Black tumor','White germline','Black germline'))
+  source_site$Race_tissue <- factor(source_site$Race_tissue, levels=c('European tumor','African tumor','European germline','African germline'))
   
   source_site$Source_Site_number2 <- factor(source_site$Source_Site_number,levels=paste0(seq(1:19)))
   source_site$Source_Site_number3 <- paste0("Site ",source_site$Source_Site_number2)
@@ -615,11 +633,11 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_SITE <- function(MAPPED_READS_OR_ALL_READS)
       #  geom_point() +
       
       stat_compare_means(size=15,method='wilcox.test',mapping=aes(label=..p.signif..),
-                         comparisons = list(c("Black tumor","White tumor")),bracket.size = NA,tip.length = 0,color='black',
+                         comparisons = list(c("African tumor","European tumor")),bracket.size = NA,tip.length = 0,color='black',
                          symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) +
       
       stat_compare_means(size=15,method='wilcox.test',mapping=aes(label=..p.signif..),
-                         comparisons = list(c("Black germline","White germline")),bracket.size = NA,tip.length = 0,color='black',
+                         comparisons = list(c("African germline","European germline")),bracket.size = NA,tip.length = 0,color='black',
                          symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) +
       
       
@@ -642,7 +660,7 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_SITE <- function(MAPPED_READS_OR_ALL_READS)
       
       
       
-      scale_fill_manual(values=c('#EF5350','#42A5F5','#FFCDD2','#BBDEFB'),labels=c('White tumor  ','Black tumor  ','White germline  ','Black germline   ')) + #MANUALLY SET FILL COLORS
+      scale_fill_manual(values=c('#EF5350','#42A5F5','#FFCDD2','#BBDEFB'),labels=c('European tumor ','African tumor ','European germline ','African germline  ')) + #MANUALLY SET FILL COLORS
       
       #add text annotation
       {if(CANCER_NAME=='PRAD'){geom_text(data = Counts_CS,aes(label=read_depth, y=min(source_site_cancer$read_depth)-32500000,vjust=0),size=14)}} + 
@@ -736,9 +754,9 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_CAPKIT <- function(MAPPED_READS_OR_ALL_READ
   
   
   #new column containing race_PCA and tissue
-  CAPKITS$Race_tissue <- ifelse(CAPKITS$race_PCA=='Black' & CAPKITS$tissue.definition=='Primary Tumor','Black tumor',ifelse(CAPKITS$race_PCA=='White' & CAPKITS$tissue.definition=='Primary Tumor','White tumor',ifelse(CAPKITS$race_PCA=='Black' & CAPKITS$tissue.definition=='Patient Germline','Black germline',ifelse(CAPKITS$race_PCA=='White' & CAPKITS$tissue.definition=='Patient Germline','White germline',NA))))
+  CAPKITS$Race_tissue <- ifelse(CAPKITS$race_PCA=='African' & CAPKITS$tissue.definition=='Primary Tumor','African tumor',ifelse(CAPKITS$race_PCA=='European' & CAPKITS$tissue.definition=='Primary Tumor','European tumor',ifelse(CAPKITS$race_PCA=='African' & CAPKITS$tissue.definition=='Patient Germline','African germline',ifelse(CAPKITS$race_PCA=='European' & CAPKITS$tissue.definition=='Patient Germline','European germline',NA))))
   
-  CAPKITS$Race_tissue <- factor(CAPKITS$Race_tissue, levels=c('White tumor','Black tumor','White germline','Black germline'))
+  CAPKITS$Race_tissue <- factor(CAPKITS$Race_tissue, levels=c('European tumor','African tumor','European germline','African germline'))
   
   for (CANCER_NAME in c(names(table(DF_TO_PLOT$Cancer)[1]),names(table(DF_TO_PLOT$Cancer)[2]),
                         names(table(DF_TO_PLOT$Cancer)[3]),names(table(DF_TO_PLOT$Cancer)[4]),
@@ -797,15 +815,15 @@ PLOT_OVERALL_READ_DEPTHS_BY_RACE_AND_CAPKIT <- function(MAPPED_READS_OR_ALL_READ
       #  geom_point() + 
       
       stat_compare_means(size=13,method='wilcox.test',mapping=aes(label=..p.signif..),
-                         comparisons = list(c("Black tumor","White tumor")),bracket.size = NA,tip.length = 0,color='black',
+                         comparisons = list(c("African tumor","European tumor")),bracket.size = NA,tip.length = 0,color='black',
                          symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) +
       
       stat_compare_means(size=13,method='wilcox.test',mapping=aes(label=..p.signif..),
-                         comparisons = list(c("Black germline","White germline")),bracket.size = NA,tip.length = 0,color='black',
+                         comparisons = list(c("African germline","European germline")),bracket.size = NA,tip.length = 0,color='black',
                          symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) +
       
       
-      scale_fill_manual(values=c('#EF5350','#42A5F5','#FFCDD2','#BBDEFB'),labels=c('White tumor  ','Black tumor  ','White germline  ','Black germline   ')) + #MANUALLY SET FILL COLORS
+      scale_fill_manual(values=c('#EF5350','#42A5F5','#FFCDD2','#BBDEFB'),labels=c('European tumor ','African tumor ','European germline ','African germline  ')) + #MANUALLY SET FILL COLORS
       
       #drop false to keep blank spots
       {if (CANCER_NAME != 'BRCA'){coord_cartesian(ylim=c(30000000,NA),clip='off')}} + 
@@ -879,9 +897,9 @@ DATES <- DATES[,c('Cancer','CAPTURE_KIT_simp','Sequencing_Date','Race_Count')]
 
 DATES <- aggregate(.~ Cancer+CAPTURE_KIT_simp+Sequencing_Date, DATES, toString) 
 
-DATES$Race_Count <- gsub('White, ','White | ',DATES$Race_Count)
-DATES$Race_Count <- gsub('White','W',DATES$Race_Count)
-DATES$Race_Count <- gsub('Black', 'B',DATES$Race_Count)
+DATES$Race_Count <- gsub('European, ','European | ',DATES$Race_Count)
+DATES$Race_Count <- gsub('European','W',DATES$Race_Count)
+DATES$Race_Count <- gsub('African', 'B',DATES$Race_Count)
 
 DATES <- DATES %>% spread(Sequencing_Date,Race_Count,fill = '')
 
@@ -916,14 +934,14 @@ NIMBLEGEN_BY_CAPTURE_BRCA_OVERALL_READ_DEPTHS <- function(){
   Means$read_depth_per_mb_capkit <- sprintf("%1.2f",round(Means$read_depth_per_mb_capkit,1)/1000000)
   
   #create labels for the annotated text below each facet row
-  tumor_label_counts <- data.frame(race_PCA='White',tissue.definition=c('Primary Tumor'), read_depth_per_mb_capkit=c(140000),CAPTURE_KIT_simp=c('All NimbleGen kits','NimbleGen SeqCap EZ Exome v2','NimbleGen SeqCap EZ Exome v3','NimbleGen hg18 Exome v2'),label=c('n','','',''))
+  tumor_label_counts <- data.frame(race_PCA='European',tissue.definition=c('Primary Tumor'), read_depth_per_mb_capkit=c(140000),CAPTURE_KIT_simp=c('All NimbleGen kits','NimbleGen SeqCap EZ Exome v2','NimbleGen SeqCap EZ Exome v3','NimbleGen hg18 Exome v2'),label=c('n','','',''))
   #tumor_label_counts$Cancer <- factor(tumor_label_counts$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
-  germline_label_counts <- data.frame(race_PCA='White',tissue.definition=c('Patient Germline'), read_depth_per_mb_capkit=c(140000),CAPTURE_KIT_simp=c('All NimbleGen kits','NimbleGen SeqCap EZ Exome v2','NimbleGen SeqCap EZ Exome v3','NimbleGen hg18 Exome v2'),label=c('n','','',''))
+  germline_label_counts <- data.frame(race_PCA='European',tissue.definition=c('Patient Germline'), read_depth_per_mb_capkit=c(140000),CAPTURE_KIT_simp=c('All NimbleGen kits','NimbleGen SeqCap EZ Exome v2','NimbleGen SeqCap EZ Exome v3','NimbleGen hg18 Exome v2'),label=c('n','','',''))
   #germline_label_counts$Cancer <- factor(germline_label_counts$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
   
-  tumor_label_mean <- data.frame(race_PCA='White',tissue.definition=c('Primary Tumor'), read_depth_per_mb_capkit=c(140000),CAPTURE_KIT_simp=c('All NimbleGen kits','NimbleGen SeqCap EZ Exome v2','NimbleGen SeqCap EZ Exome v3','NimbleGen hg18 Exome v2'),label=c('bar(x)','','',''))
+  tumor_label_mean <- data.frame(race_PCA='European',tissue.definition=c('Primary Tumor'), read_depth_per_mb_capkit=c(140000),CAPTURE_KIT_simp=c('All NimbleGen kits','NimbleGen SeqCap EZ Exome v2','NimbleGen SeqCap EZ Exome v3','NimbleGen hg18 Exome v2'),label=c('bar(x)','','',''))
   #tumor_label_mean$Cancer <- factor(tumor_label_mean$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
-  germline_label_mean <- data.frame(race_PCA='White',tissue.definition=c('Patient Germline'), read_depth_per_mb_capkit=c(140000),CAPTURE_KIT_simp=c('All NimbleGen kits','NimbleGen SeqCap EZ Exome v2','NimbleGen SeqCap EZ Exome v3','NimbleGen hg18 Exome v2'),label=c('bar(x)','','',''))
+  germline_label_mean <- data.frame(race_PCA='European',tissue.definition=c('Patient Germline'), read_depth_per_mb_capkit=c(140000),CAPTURE_KIT_simp=c('All NimbleGen kits','NimbleGen SeqCap EZ Exome v2','NimbleGen SeqCap EZ Exome v3','NimbleGen hg18 Exome v2'),label=c('bar(x)','','',''))
   #germline_label_mean$Cancer <- factor(germline_label_mean$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'))
   
   
@@ -948,7 +966,8 @@ NIMBLEGEN_BY_CAPTURE_BRCA_OVERALL_READ_DEPTHS <- function(){
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           legend.direction='horizontal',
-          legend.text=element_text(size=26),
+          legend.key.size = unit(2,"line"),
+          legend.text=element_text(size=24),
           legend.background = element_rect(linetype='solid', colour='black'),
           legend.position=c(0,-40),
           legend.title=element_blank()) + 
@@ -979,11 +998,11 @@ NIMBLEGEN_BY_CAPTURE_BRCA_OVERALL_READ_DEPTHS <- function(){
     
     coord_cartesian(ylim=c(210000,6000000),clip='off') +
     
-    scale_fill_manual(values=c('#EF5350','#42A5F5')) + #MANUALLY SET FILL COLOR
+    scale_fill_manual(values=c('#EF5350','#42A5F5'),labels=c('European ','African ')) + #MANUALLY SET FILL COLORS
     
     #means comparisons
     stat_compare_means(size=7,method='wilcox.test',mapping=aes(label=..p.signif..),
-                       comparisons = list(c("Black","White")),bracket.size = NA,tip.length = 0,color='black',
+                       comparisons = list(c("African","European")),bracket.size = NA,tip.length = 0,color='black',
                        #label.y=400000000, #adjust position of p-value
                        symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", "")))
   
@@ -1026,7 +1045,7 @@ for (CANCER_NAME in CANCER_LIST){
 }
 
 race_MAF_depths <- merge(race_data, MAF_all, by='submitter_id')
-race_MAF_depths <- subset(race_MAF_depths, (race_PCA=='Black' | race_PCA=='White'))
+race_MAF_depths <- subset(race_MAF_depths, (race_PCA=='African' | race_PCA=='European'))
 
 #get rid of duplicates
 race_MAF_depths <- unique(race_MAF_depths)
@@ -1078,7 +1097,7 @@ MAF_reads_by_race <- ggplot(race_MAF_depths_melted, aes(x=factor(race_PCA),y=val
   
   #means comparisons
   stat_compare_means(size=6,method='wilcox.test',mapping=aes(label=..p.signif..),
-                     comparisons = list(c("Black","White")),bracket.size = NA,tip.length = 0,color='black',
+                     comparisons = list(c("African","European")),bracket.size = NA,tip.length = 0,color='black',
                      #label.y=400000000, #adjust position of p-value
                      symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) 
 
@@ -1100,6 +1119,10 @@ for (TISSUE in c('Primary_Tumor','Patient_Germline')){
     
   }
 }
+
+#rename race
+ALL_SAMPLES$RACE <- gsub("Black","African",ALL_SAMPLES$RACE)
+ALL_SAMPLES$RACE <- gsub("White","European",ALL_SAMPLES$RACE)
 
 #get total capture region size
 common_capture_region <- read.table('/research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/processed_data/capture_kit/three_capture_kits_intersection_hg38_liftover.bed',header=FALSE,sep='\t')
@@ -1144,7 +1167,7 @@ PLOT_MOSAIC <- function(WHICH_TISSUE){
     row.names(ALL_SAMPLES_mosaic) <- sub('DP_','',row.names(ALL_SAMPLES_mosaic))
     names(ALL_SAMPLES_mosaic) <- as.character(ALL_SAMPLES$RACE)
     
-    ALL_SAMPLES_mosaic <- ALL_SAMPLES_mosaic[,c('Black','White')]
+    ALL_SAMPLES_mosaic <- ALL_SAMPLES_mosaic[,c('African','European')]
     
     theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))
     par(mar = c(2, 0, 2, 0))  
@@ -1217,7 +1240,7 @@ CHISQ_TABLE <- function(TISSUE){
     CHISQ <- get(paste0('CHISQ_',KIT,'_',TISSUE))
     
     
-    CHISQ_T <- matrix(mapply(function(x, y){paste(x,y, sep = " | ")}, formatC(CHISQ$observed,format='f',big.mark=',',digits=0),formatC(CHISQ$expected,format='f',big.mark=',',digits = 0)),nrow=3,ncol=2,dimnames = list(c('1-10','11-39','40+'),c('Black','White')))
+    CHISQ_T <- matrix(mapply(function(x, y){paste(x,y, sep = " | ")}, formatC(CHISQ$observed,format='f',big.mark=',',digits=0),formatC(CHISQ$expected,format='f',big.mark=',',digits = 0)),nrow=3,ncol=2,dimnames = list(c('1-10','11-39','40+'),c('African','European')))
     
     KIT_orig <- KIT
     KIT <- gsub("_",' ',KIT)
@@ -1362,6 +1385,11 @@ names(cancer_genes) <- c('name')
 #subset
 MAFs_DPs_at_ALT_positions_MELTED_cancer_genes <- MAFs_DPs_at_ALT_positions_MELTED[MAFs_DPs_at_ALT_positions_MELTED$Gene %in% cancer_genes$name,] 
 
+#convert race to ethnicity, as based on race PCA
+MAFs_DPs_at_ALT_positions_MELTED$Race <- gsub("Black","African",MAFs_DPs_at_ALT_positions_MELTED$Race)
+MAFs_DPs_at_ALT_positions_MELTED$Race <- gsub("White","European",MAFs_DPs_at_ALT_positions_MELTED$Race)
+
+
 
 
 
@@ -1376,7 +1404,7 @@ plot_MAF_by_coverage_level <- function(DF,INCLUDE_EQNS){
   
   DF$Race <- gsub('BlackWhite_','',DF$Race)
   DF$Race <- gsub('_DOWNSAMPLED','',DF$Race)
-  DF$Race <- factor(DF$Race, levels=c('White','Black'),ordered=TRUE)
+  DF$Race <- factor(DF$Race, levels=c('European','African'),ordered=TRUE)
   
   
   #PLOT
@@ -1413,7 +1441,7 @@ plot_MAF_by_coverage_level <- function(DF,INCLUDE_EQNS){
   #DF <- subset(MAFs_DPs_at_ALT_positions_MELTED, Gene=='BRCA2')
   
   DF$DP_group <- as.factor(as.character(fct_reorder(DF$DP_group, DF$variable2, min)))
-  
+  DF$Ancestry <- DF$Race
   
   plot <- ggplot(DF, aes(x=as.numeric(as.character(BAF_1kGenomes)), y=as.numeric(as.character(BAF)))) + #facet_grid(rows=vars(Tissue),cols = vars(Race)) + 
     #  geom_smooth(aes(group=race,color=race),method='loess',se=FALSE,size=0.65) +
@@ -1422,7 +1450,7 @@ plot_MAF_by_coverage_level <- function(DF,INCLUDE_EQNS){
     
     #  geom_smooth(data=subset(DF,Race=='White'),linetype='solid',position=position_jitter(0.000),method='lm', formula= y~x,aes(color=(fct_reorder(subset(DF, Race=='White')$DP_group, subset(DF, Race=='White')$variable2, min))),se=FALSE,size=1.5)   +
     # geom_smooth(data=subset(DF,Race=='Black'),linetype='dashed',position=position_jitter(0.000),method='lm', formula= y~x,aes(color=(fct_reorder(subset(DF, Race=='Black')$DP_group, subset(DF, Race=='Black')$variable2, min))),se=FALSE,size=1.5)   +
-    geom_smooth(data=DF,position=position_jitter(0.000),method='lm', formula= y~x,aes(linetype=Race,color=(fct_reorder(DF$DP_group, DF$variable2, min))),se=FALSE,size=1.5)   +
+    geom_smooth(data=DF,position=position_jitter(0.000),method='lm', formula= y~x,aes(linetype=Ancestry,color=(fct_reorder(DF$DP_group, DF$variable2, min))),se=FALSE,size=1.5)   +
     
     #correlation equations
     #     stat_cor(size=4,aes(color=as.character(DP_group),label = paste(sub("R = ","R=",..r.label..))),  digits=4,output.type="text",  label.y = 1.15, data = subset(DF, (DP_group==DP_values[2]))) +
@@ -1443,7 +1471,7 @@ plot_MAF_by_coverage_level <- function(DF,INCLUDE_EQNS){
           plot.margin = unit(c(0,1,0,0), "lines"), #top, right, bottom, left
           plot.tag = element_text(size = 22,face='bold'),
           plot.tag.position = c(0.01, 0.98),
-          legend.position=c(0.11,0.75),legend.direction='vertical',
+          legend.position=c(0.12,0.75),legend.direction='vertical',
           legend.text=element_text(size=25,hjust = 0),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
@@ -1553,7 +1581,7 @@ THOU_GENOMES_CAPTURE <- ggplot(Thousand_Genomes_Common_capture_MELTED, aes(x=as.
   
   
   #coord_cartesian(ylim = c(0,1.35))+
-  scale_fill_manual(values=c('#EF5350','#42A5F5')) + #MANUALLY SET FILL COLORS 
+  scale_fill_manual(values=c('#EF5350','#42A5F5'),labels=c('European ','African ')) + #MANUALLY SET FILL COLORS) + #MANUALLY SET FILL COLORS 
   
   #means comparisons
   stat_compare_means(size=10,method='wilcox.test',mapping=aes(label=..p.signif..),
@@ -1731,6 +1759,166 @@ BAC_fig_BRCA <- annotate_figure(BAC_fig_BRCA,left = text_grob("Density",size=29,
 
 
 ######################################
+#READ COUNT PER VARIANT POSITION FOR UCEC, PRAD, LUAD, COAD, KIRC (SOMATIC MAF)
+######################################
+#get submitter IDs and race to add to MAF
+race_data <- ALL_READS_FOR_PLOTTING[c('submitter_id','race_PCA')]
+
+#Create dataframe to hold MAF data for all cancers
+MAF_all <- data.frame()
+
+CANCER_LIST <- c('UCEC','PRAD','LUAD','COAD','KIRC')
+
+for (CANCER_NAME in CANCER_LIST){
+  print(CANCER_NAME)
+  MAF_cancer <- read.table(paste0('/research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/somatic_hg38/',CANCER_NAME,'_somatic.maf'),header=TRUE,quote="",sep='\t')
+  MAF_cancer <- MAF_cancer[,c('Tumor_Sample_Barcode','Matched_Norm_Sample_Barcode','Chromosome','Start_Position','End_Position','Hugo_Symbol','Reference_Allele','Tumor_Seq_Allele1','Tumor_Seq_Allele2','t_depth','t_ref_count','t_alt_count','n_depth','dbSNP_RS','Variant_Classification','Variant_Type','Center')]   
+  MAF_cancer$submitter_id <- sub("^([^-]*-[^-]*-[^-]*).*", "\\1",MAF_cancer$Tumor_Sample_Barcode)
+  #  names(MAF_cancer)[2:3] <- c('tumor_tissue_depth_MAF','normal_tissue_depth_MAF')
+  MAF_cancer$Cancer <- CANCER_NAME
+  write.table(file=paste0('/research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/somatic_hg38/',CANCER_NAME,'_somatic_position_list.txt'),x=unique(MAF_cancer[,c('Chromosome','Start_Position','End_Position')]),row.names=FALSE,quote=FALSE)
+  MAF_all <- rbind(MAF_all,MAF_cancer)
+}
+
+race_MAF_depths <- merge(race_data, MAF_all, by='submitter_id')
+race_MAF_depths <- subset(race_MAF_depths, (race_PCA=='African' | race_PCA=='European'))
+
+#get rid of duplicates
+race_MAF_depths <- unique(race_MAF_depths)
+
+
+
+
+
+
+
+
+GENERATE_BAC_PLOT <- function(MIN_READS,DATASET,X_POS,Y_POS,CANCER_TYPE){
+  
+  MINIMUM_READS <- MIN_READS
+  
+  MAF_subset <- DATASET
+  MAF_subset$MIN_READS <- paste0(MINIMUM_READS,"x coverage") 
+  MAF_subset$TYPE <- ''
+  
+  MAF_subset <- subset(MAF_subset, t_alt_count > 0)
+  
+  ##normalize b/c truncated distribution
+  #MAF_subset$BAC <- trunc2norm(MAF_subset$BAC)
+  
+  #first create shading regions
+  AUC <- density(MAF_subset$BAC, from = min(MAF_subset$BAC), to = 1/MINIMUM_READS,n=2500)
+  AUC_coords <- data.frame(x = AUC$x, y = AUC$y)
+  
+  #create coordinates for annotation
+  if(length(unique(DATASET$Cancer)) != 1){
+    VJUST_1=-1.65
+    VJUST_2=-0.130
+    VJUST_3=-1.25
+    VJUST_4=0.275
+    
+    HJUST_1=0.080
+    HJUST_2=0.15
+    
+    HJUST_3=0.080
+    HJUST_4=0.15
+  }
+  
+  if(length(unique(DATASET$Cancer)) == 1){
+    VJUST_1=-1.65
+    VJUST_2=-0.150
+    VJUST_3=-1.25
+    VJUST_4=0.275
+    
+    HJUST_1=-0.25
+    HJUST_2=-0.6225
+    HJUST_3=-0.25
+    HJUST_4=-0.515
+  }
+  
+  #plot of BAC per locus per individual
+  BAC_plot <- ggplot(MAF_subset, aes(x=BAC))+ xlab('BAC') + ylab('Density') +  facet_grid(MIN_READS~TYPE) +
+    
+    geom_line(stat='density',size=1,alpha=1) + theme(axis.title.y = element_text(size=32)) +
+    geom_area(data= AUC_coords, aes(x = x, y = y),fill='red',alpha=0.10) +
+    
+    geom_segment(aes(x=1/MINIMUM_READS,xend=1/MINIMUM_READS,y=0,yend=AUC_coords[which.min(abs(1/MINIMUM_READS - AUC_coords$x)),]$y),linetype='dashed',color='#4DAF4A',size=1.0) +
+    
+    geom_text(aes(x=1/MINIMUM_READS,y=AUC_coords[which.min(abs(1/MINIMUM_READS - AUC_coords$x)),]$y,label = paste0(1/MINIMUM_READS), vjust = -1.10,hjust=0.5),color='black',size=6.5) +
+    
+    #ecdf indicates proportion of samples with value below cutoff, e.g. BAC below 5; if look at MAC, can fonrim that .2% of all variants have BAC below 0.025
+    #so maybe ecdf not the most accurate b/c doesn't go all the way to zero; instead, calculate actual proportion of values below these levels
+    #    geom_text(aes(x=.20,y=55000,label = paste0(round(as.numeric(ecdf(MAF_subset$BAC)(1/MINIMUM_READS)-ecdf(MAF_subset$BAC)(min(AUC_coords$x))),digits=3)*100,"% of variants potentially missed\n (min. BAC = ",1/MINIMUM_READS,")"), vjust = -0.20,hjust=-0.050),size=4) + #note that x-value goes in parentheses after the ecdf fxn
+    
+    {if(MIN_READS == 5 | MIN_READS == 10){geom_text(aes(x=X_POS,y=Y_POS,label = paste0(round(nrow(subset(MAF_subset, BAC < 1/MINIMUM_READS))/nrow(MAF_subset),digits=3)*100,"% of variants potentially missed"), vjust = VJUST_1,hjust=HJUST_1),size=8)}} +  
+    {if(MIN_READS == 5 | MIN_READS == 10){geom_text(aes(x=X_POS,y=Y_POS,label = paste0("(min. BAC = ",1/MINIMUM_READS,")"), vjust = VJUST_2,hjust=HJUST_2),size=7)}} +  
+    
+    {if(MIN_READS == 40){geom_text(aes(x=X_POS,y=Y_POS,label = paste0(round(nrow(subset(MAF_subset, BAC < 1/MINIMUM_READS))/nrow(MAF_subset),digits=3)*100,"% of variants potentially missed"), vjust = VJUST_3,hjust=HJUST_3),size=8)}} +  
+    {if(MIN_READS ==40){geom_text(aes(x=X_POS,y=Y_POS,label = paste0("(min. BAC = ",1/MINIMUM_READS,")"), vjust = VJUST_4,hjust=HJUST_4),size=7)}} +  
+    
+    
+    
+    scale_y_continuous(expand = expansion(mult = c(.05, 0.30))) + ylab("") + 
+    
+    
+    #scale_x_continuous(trans=pseudo_log_trans(base=2),breaks = 2^seq(1,32, by = 4)) + 
+    #scale_color_manual(values=c('#00BFC4','#F8766D')) +
+    scale_color_manual(values=c('red','green','blue','black','cyan')) + 
+    theme(strip.text = element_text(size = 26),#,hjust=0),
+          strip.text.x = element_blank(),
+          axis.text.x = element_text(size=27,margin=margin(t=5,l=0,b=0,r=0)),
+          axis.text.y = element_text(size=25,margin=margin(t=,l=0,b=0,r=5)),
+          axis.title.y = element_blank(),
+          plot.margin = unit(c(0,1,0,1), "lines"), #top, right, bottom, left
+          #      axis.ticks.y=element_blank(),
+          #   strip.background = element_rect(color='black', fill='white'),
+          #    panel.background = element_rect(color = 'black',fill='white'),
+          #    panel.grid.major = element_blank(),
+          #    panel.grid.minor = element_blank(),
+          #   plot.tag = element_text(size = 22,face='bold'),a
+          #  plot.tag.position = c(-0.035, 0.94),
+          plot.title = element_text(hjust=0.5,size=26,face='bold'),
+          axis.title.x = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.background = element_rect(color = 'black',fill=NA),
+          strip.background = element_blank(),
+          legend.position = 'right',legend.direction='vertical',
+          legend.text=element_text(size=32),
+          legend.title=element_blank()) +
+    {if(MIN_READS==40){labs(title=CANCER_TYPE)}} 
+  
+  return(BAC_plot)
+}
+
+
+
+
+
+for (CANCER_TYPE in c('UCEC','PRAD','LUAD','COAD','KIRC')){
+  assign(paste0("BAC5_",CANCER_TYPE), GENERATE_BAC_PLOT(5,subset(MAF_protein_altering,Cancer==CANCER_TYPE),0.31,2,CANCER_TYPE))
+  assign(paste0("BAC10_",CANCER_TYPE), GENERATE_BAC_PLOT(10,subset(MAF_protein_altering,Cancer==CANCER_TYPE),0.31,2,CANCER_TYPE))
+  assign(paste0("BAC40_",CANCER_TYPE), GENERATE_BAC_PLOT(40,subset(MAF_protein_altering,Cancer==CANCER_TYPE),0.31,2,CANCER_TYPE))
+  
+  assign(paste0("BAC_fig_",CANCER_TYPE), ggarrange(get(paste0("BAC40_",CANCER_TYPE)),get(paste0("BAC10_",CANCER_TYPE)),get(paste0("BAC5_",CANCER_TYPE)),NULL,nrow=4,heights=c(1,1,1,0.05)))
+  
+  
+  assign(paste0("BAC_fig_",CANCER_TYPE),annotate_figure(get(paste0("BAC_fig_",CANCER_TYPE)),left = text_grob("Density",size=29,rot = 90),bottom = text_grob("B allele concentration (BAC)",size=29)) + theme(plot.margin = margin(0.1,0.1,0.75,0.1, "cm"))) #incr marrgin at bottom
+}
+
+
+png(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/GitHub/Racial_Disparities_in_Exome_Read_Depth/MS_plots/FIG_BAC_others.png'),height=24,width=32,res = 600,units = 'in')
+
+BAC_others <- ggarrange(NULL,NULL,NULL,BAC_fig_UCEC,BAC_fig_PRAD,BAC_fig_LUAD,NULL,NULL,NULL,BAC_fig_COAD,BAC_fig_KIRC,nrow=4,ncol=3,heights=c(0.05,1,0.05,1))
+plot(BAC_others)
+dev.off()
+
+
+
+
+
+
+######################################
 ## of ALT reads per locus per exome
 ######################################
 
@@ -1793,57 +1981,8 @@ png(paste0('/home/mayo/m187735/s212975.Wickland_Immunomics/GitHub/Racial_Dispari
 ggarrange(NULL,ggarrange(variant_count_plot_all,NULL,nrow=1,widths=c(1,0.05)),NULL,NULL,NULL,ggarrange(BAC_fig_all,NULL,nrow=1,widths=c(1,0.01)),nrow=3,ncol=2,widths=c(0.05,1),heights=c(0.75,0.05,1.50),labels=c('A.','','','','B.',''),font.label = list(size = 26,color = 'black'))
 dev.off()
 
-#####################################
-#QUALITY AT SOMATIC VARIANT POSITIONS IN MAF
-######################################
-
-#Create dataframe to hold MAF data for all cancers
-protected_MAF_all <- data.frame()
-
-CANCER_LIST <- c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC')
-
-for (CANCER_NAME in CANCER_LIST){
-  print(CANCER_NAME)
-  protected_MAF_cancer <- read.table(paste0('/research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/protected_hg38/',CANCER_NAME,'_protected.maf'),header=TRUE,quote="",sep='\t')[,c('Tumor_Sample_Barcode','Chromosome','Start_Position','End_Position','Reference_Allele','Tumor_Seq_Allele1','Tumor_Seq_Allele2','n_depth','n_ref_count','n_alt_count','t_depth','t_ref_count','t_alt_count','vcf_info','vcf_format')]
-  
-  protected_MAF_cancer$submitter_id <- sub("^([^-]*-[^-]*-[^-]*).*", "\\1",protected_MAF_cancer$Tumor_Sample_Barcode)
-  # names(protected_MAF_cancer)[2:3] <- c('tumor_tissue_depth_protected_MAF','normal_tissue_depth_protected_MAF')
-  protected_MAF_cancer$Cancer <- CANCER_NAME
-  protected_MAF_all <- rbind(protected_MAF_all,protected_MAF_cancer)
-}
-rm(protected_MAF_cancer)
 
 
-
-#extract somatic MAF positions from protected MAF
-somatic_with_vcf_and_normal_info <- merge(race_MAF_depths,protected_MAF_all,by=c('Cancer','Tumor_Sample_Barcode','Chromosome','Start_Position','End_Position','Reference_Allele','Tumor_Seq_Allele1','Tumor_Seq_Allele2','t_depth','t_ref_count','t_alt_count','submitter_id','n_depth'))
-
-somatic_with_vcf_and_normal_info$TLOD <-sub(".*NLOD.*\\;","\\1",somatic_with_vcf_and_normal_info$vcf_info)
-somatic_with_vcf_and_normal_info$TLOD <-sub("TLOD=","",somatic_with_vcf_and_normal_info$TLOD)
-
-somatic_with_vcf_and_normal_info$NLOD <- sub(".*NLOD","\\1",somatic_with_vcf_and_normal_info$vcf_info)
-somatic_with_vcf_and_normal_info$NLOD <- sub(";.*","\\1",somatic_with_vcf_and_normal_info$NLOD)
-somatic_with_vcf_and_normal_info$NLOD <- sub("=","",somatic_with_vcf_and_normal_info$NLOD)
-
-
-#if any barcode-allele-depth has multiple VCFs, keep the ony with highest NLOD/TLOD
-#identify all duplicated rows (not just 2nd occurrence)
-#in some cases multiple VCFs per sample / allele -- keep one with  largest NLOD/TLOD (affects ~110 samples)
-somatic_with_vcf_and_normal_info <- somatic_with_vcf_and_normal_info %>% group_by(Cancer,Tumor_Sample_Barcode,Chromosome,Start_Position,End_Position,Reference_Allele,Tumor_Seq_Allele1,Tumor_Seq_Allele2,t_depth,t_ref_count,t_alt_count,submitter_id) %>% top_n(1,abs(as.numeric(NLOD)+as.numeric(TLOD)))
-
-#get rid of duplicates
-somatic_with_vcf_and_normal_info <- unique(somatic_with_vcf_and_normal_info)
-
-#subset to keep only samples analyzed in previous analyses
-somatic_with_vcf_and_normal_info$submitter_id_med <-  gsub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",somatic_with_vcf_and_normal_info$Tumor_Sample_Barcode)
-
-somatic_with_vcf_and_normal_info <- somatic_with_vcf_and_normal_info[somatic_with_vcf_and_normal_info$submitter_id_med %in% MAPPED_READS_FOR_PLOTTING$submitter_id_med,]
-
-#melt the dataframe so that can have separate tumor and normal facets
-somatic_with_vcf_and_normal_info_melted <- reshape2::melt(somatic_with_vcf_and_normal_info, id.vars=names(somatic_with_vcf_and_normal_info)[!grepl("NLOD|TLOD",colnames(somatic_with_vcf_and_normal_info))])
-
-#arrange cancer order
-somatic_with_vcf_and_normal_info_melted$Cancer <- factor(somatic_with_vcf_and_normal_info_melted$Cancer,levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),ordered=TRUE)
 
 
 #####################################
@@ -1897,6 +2036,64 @@ somatic_with_vcf_and_normal_info_melted <- reshape2::melt(somatic_with_vcf_and_n
 
 #arrange cancer order
 somatic_with_vcf_and_normal_info_melted$Cancer <- factor(somatic_with_vcf_and_normal_info_melted$Cancer,levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),ordered=TRUE)
+
+
+#####################################
+#QUALITY AT SOMATIC VARIANT POSITIONS IN MAF
+######################################
+
+#Create dataframe to hold MAF data for all cancers
+protected_MAF_all <- data.frame()
+
+CANCER_LIST <- c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC')
+
+for (CANCER_NAME in CANCER_LIST){
+  print(CANCER_NAME)
+  protected_MAF_cancer <- read.table(paste0('/research/bsi/projects/PI/tertiary/Asmann_Yan_wangy3/s212975.Wickland_Immunomics/processing/TCGA/MAFs/protected_hg38/',CANCER_NAME,'_protected.maf'),header=TRUE,quote="",sep='\t')[,c('Tumor_Sample_Barcode','Chromosome','Start_Position','End_Position','Reference_Allele','Tumor_Seq_Allele1','Tumor_Seq_Allele2','n_depth','n_ref_count','n_alt_count','t_depth','t_ref_count','t_alt_count','vcf_info','vcf_format')]
+  
+  protected_MAF_cancer$submitter_id <- sub("^([^-]*-[^-]*-[^-]*).*", "\\1",protected_MAF_cancer$Tumor_Sample_Barcode)
+  # names(protected_MAF_cancer)[2:3] <- c('tumor_tissue_depth_protected_MAF','normal_tissue_depth_protected_MAF')
+  protected_MAF_cancer$Cancer <- CANCER_NAME
+  protected_MAF_all <- rbind(protected_MAF_all,protected_MAF_cancer)
+}
+rm(protected_MAF_cancer)
+
+
+
+#extract somatic MAF positions from protected MAF
+somatic_with_vcf_and_normal_info <- merge(race_MAF_depths,protected_MAF_all,by=c('Cancer','Tumor_Sample_Barcode','Chromosome','Start_Position','End_Position','Reference_Allele','Tumor_Seq_Allele1','Tumor_Seq_Allele2','t_depth','t_ref_count','t_alt_count','submitter_id','n_depth'))
+
+somatic_with_vcf_and_normal_info$TLOD <-sub(".*NLOD.*\\;","\\1",somatic_with_vcf_and_normal_info$vcf_info)
+somatic_with_vcf_and_normal_info$TLOD <-sub("TLOD=","",somatic_with_vcf_and_normal_info$TLOD)
+
+somatic_with_vcf_and_normal_info$NLOD <- sub(".*NLOD","\\1",somatic_with_vcf_and_normal_info$vcf_info)
+somatic_with_vcf_and_normal_info$NLOD <- sub(";.*","\\1",somatic_with_vcf_and_normal_info$NLOD)
+somatic_with_vcf_and_normal_info$NLOD <- sub("=","",somatic_with_vcf_and_normal_info$NLOD)
+
+
+#if any barcode-allele-depth has multiple VCFs, keep the ony with highest NLOD/TLOD
+#identify all duplicated rows (not just 2nd occurrence)
+#in some cases multiple VCFs per sample / allele -- keep one with  largest NLOD/TLOD (affects ~110 samples)
+somatic_with_vcf_and_normal_info <- somatic_with_vcf_and_normal_info %>% group_by(Cancer,Tumor_Sample_Barcode,Chromosome,Start_Position,End_Position,Reference_Allele,Tumor_Seq_Allele1,Tumor_Seq_Allele2,t_depth,t_ref_count,t_alt_count,submitter_id) %>% top_n(1,abs(as.numeric(NLOD)+as.numeric(TLOD)))
+
+#get rid of duplicates
+somatic_with_vcf_and_normal_info <- unique(somatic_with_vcf_and_normal_info)
+
+#subset to keep only samples analyzed in previous analyses
+somatic_with_vcf_and_normal_info$submitter_id_med <-  gsub("^([^-]*-[^-]*-[^-]*-[^-]*).*", "\\1",somatic_with_vcf_and_normal_info$Tumor_Sample_Barcode)
+
+somatic_with_vcf_and_normal_info <- somatic_with_vcf_and_normal_info[somatic_with_vcf_and_normal_info$submitter_id_med %in% MAPPED_READS_FOR_PLOTTING$submitter_id_med,]
+
+#melt the dataframe so that can have separate tumor and normal facets
+somatic_with_vcf_and_normal_info_melted <- reshape2::melt(somatic_with_vcf_and_normal_info, id.vars=names(somatic_with_vcf_and_normal_info)[!grepl("NLOD|TLOD",colnames(somatic_with_vcf_and_normal_info))])
+
+#arrange cancer order
+somatic_with_vcf_and_normal_info_melted$Cancer <- factor(somatic_with_vcf_and_normal_info_melted$Cancer,levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRP','KIRC'),ordered=TRUE)
+
+#arrange racial order
+somatic_with_vcf_and_normal_info_melted$race_PCA <- factor(somatic_with_vcf_and_normal_info_melted$race_PCA,levels=c('European','African'),ordered=TRUE)
+
+
 
 #calculte couns, avg qual
 Counts_QUAL <- aggregate(value ~ variable + Cancer + race_PCA, somatic_with_vcf_and_normal_info_melted, length)
@@ -1906,14 +2103,14 @@ names(Means_QUAL)[4] <- 'value'
 
 
 #create labels for the annotated text below each facet row
-TLOD_label_counts <- data.frame(race_PCA='White',variable=c('TLOD'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'),label=c('n','','','','',''))
+TLOD_label_counts <- data.frame(race_PCA='European',variable=c('TLOD'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'),label=c('n','','','','',''))
 TLOD_label_counts$Cancer <- factor(TLOD_label_counts$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'))
-NLOD_label_counts <- data.frame(race_PCA='White',variable=c('NLOD'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'),label=c('n','','','','',''))
+NLOD_label_counts <- data.frame(race_PCA='European',variable=c('NLOD'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'),label=c('n','','','','',''))
 NLOD_label_counts$Cancer <- factor(NLOD_label_counts$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'))
 
-TLOD_label_mean <- data.frame(race_PCA='White',variable=c('TLOD'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'),label=c('bar(x)','','','','',''))
+TLOD_label_mean <- data.frame(race_PCA='European',variable=c('TLOD'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'),label=c('bar(x)','','','','',''))
 TLOD_label_mean$Cancer <- factor(TLOD_label_mean$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'))
-NLOD_label_mean <- data.frame(race_PCA='White',variable=c('NLOD'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'),label=c('bar(x)','','','','',''))
+NLOD_label_mean <- data.frame(race_PCA='European',variable=c('NLOD'), read_depth=c(14000000),Cancer=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'),label=c('bar(x)','','','','',''))
 NLOD_label_mean$Cancer <- factor(NLOD_label_mean$Cancer, levels=c('BRCA','UCEC','PRAD','LUAD','COAD','KIRC'))
 
 
@@ -1937,6 +2134,7 @@ MAF_quality_by_race <- ggplot(somatic_with_vcf_and_normal_info_melted, aes(x=fac
         panel.spacing.y=unit(5,"lines"), #to control distance betweeen facet rows
         legend.position = 'bottom',legend.direction='horizontal',
         legend.text=element_text(size=32),
+        legend.key.size = unit(2.5,"line"),
         legend.background = element_rect(linetype='solid', colour='black'),
         legend.title=element_blank()) + #labs(tag = "D.") +
   #geom_point() + 
@@ -1951,11 +2149,11 @@ MAF_quality_by_race <- ggplot(somatic_with_vcf_and_normal_info_melted, aes(x=fac
   
   #means comparisons
   stat_compare_means(size=8,method='wilcox.test',mapping=aes(label=..p.signif..),
-                     comparisons = list(c("Black","White")),bracket.size = NA,tip.length = 0,color='black',
+                     comparisons = list(c("African","European")),bracket.size = NA,tip.length = 0,color='black',
                      #label.y=400000000, #adjust position of p-value
                      symnum.args=list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("p<0.0001", "p<0.001", "p<0.01", "p<0.05", ""))) +
   
-  coord_cartesian(ylim=c(0,NA),clip='off') + 
+  coord_cartesian(ylim=c(0,NA),clip='off') + scale_fill_manual(values=c('#EF5350','#42A5F5'),labels=c('European ','African ')) + #MANUALLY SET FILL COLORS
   
   #Add counts means
   geom_text(data = subset(Counts_QUAL, variable == "TLOD"),aes(label=formatC(value,format='f',big.mark=',',digits=0), y=-3,vjust=0.2),size=7) +
@@ -1990,26 +2188,23 @@ MAF_quality_by_race <- ggplot(somatic_with_vcf_and_normal_info_melted, aes(x=fac
   
   
   
-  #OUTPUT FIGURE S8
-  png(paste0("/home/mayo/m187735/s212975.Wickland_Immunomics/GitHub/Racial_Disparities_in_Exome_Read_Depth/MS_plots/FIGS8.png"),height=10,width=19,units='in',res=500)
+  #OUTPUT FIGURE S7
+  png(paste0("/home/mayo/m187735/s212975.Wickland_Immunomics/GitHub/Racial_Disparities_in_Exome_Read_Depth/MS_plots/FIGS7.png"),height=10,width=19,units='in',res=500)
 ggarrange(MAF_quality_by_race,NULL,nrow=2,common.legend = TRUE,legend = 'bottom',align='hv',heights=c(0.8,0.055),labels=c('',''),font.label = list(size = 22, color = "black")) + theme(plot.margin = margin(b=0.5,l=0.1,t=0.1,r=0.1, "cm")) #incr marrgin at bottom
 dev.off()
 
 
 
 
+#GENERATE FINAL SUPPLEMENTAL TABLE
+FINAL_TABLE <- MAPPED_READS_FOR_PLOTTING[,c('submitter_id_med','tissue.definition','read_depth','bam_full_path','Sequencing_Center','Source_Site','Tumor_Purity','race_self_reported','Cancer','race_PCA','CAPTURE_KIT_simp')]
+
+FINAL_TABLE$bam_full_path <- basename(as.character(FINAL_TABLE$bam_full_path))
+FINAL_TABLE$Sequencing_Center <- gsub("_"," ",FINAL_TABLE$Sequencing_Center)
+FINAL_TABLE$Source_Site <- gsub("_"," ",FINAL_TABLE$Source_Site)
 
 
+names(FINAL_TABLE) <- c('TCGA Barcode','Tissue','Mapped Read Depth','BAM Filename','Sequencing Center','Collection Site','Tumor Purity','Self-Reported Race','Cancer Type','Genomic Ancestry','Exome Capture Kit')
 
-
-
-#formatC(length(x), format="f", big.mark = ",", digits=0)
-
-
-#max and min TLOD/NLOD for each cancer
-aggregate(TLOD ~  Cancer + race, somatic_with_vcf_and_normal_info, max)
-aggregate(TLOD ~  Cancer + race, somatic_with_vcf_and_normal_info, min)
-aggregate(NLOD ~  Cancer + race, somatic_with_vcf_and_normal_info, max)
-aggregate(NLOD ~  Cancer + race, somatic_with_vcf_and_normal_info, min)
-
+write.table(FINAL_TABLE, file='/home/mayo/m187735/s212975.Wickland_Immunomics/GitHub/Racial_Disparities_in_Exome_Read_Depth/MS_plots/FINAL_TABLE.txt',sep='\t',row.names=FALSE,quote=FALSE)
 
