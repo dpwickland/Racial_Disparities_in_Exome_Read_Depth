@@ -50,7 +50,7 @@ for (i in (1:N_ROWS)){
   ROW_GT <- ROW
   
   #isolate AD, GT from each column
-  ROW[,c(10:ncol(ROW))] <- sapply(ROW[,c(10:ncol(ROW))], function (x) sub("^([^:]*:[^:]*:[^:]*).*", "\\1",x))
+  ROW[,c(10:ncol(ROW))] <- sapply(ROW[,c(10:ncol(ROW))], function (x) sub("^([^:]*:[^:]*:[^:]*:[^:]*).*", "\\1",x)) 
   ROW[,c(10:ncol(ROW))] <- sapply(ROW[,c(10:ncol(ROW))], function (x) gsub("[:|,]","|",x)) #replace punctuation with pipe
   # ROW[,c(10:ncol(ROW))] <- sapply(ROW[,c(10:ncol(ROW))], function (x) sub(".*,.*", "0",x)) #if any samples had no reads
   #ROW[,c(10:ncol(ROW))] <- sapply(ROW[,c(10:ncol(ROW))], function (x) sub("\\./\\.", "0",x)) #if any samples had no reads
@@ -59,7 +59,7 @@ for (i in (1:N_ROWS)){
   
   
   #change FORMAT and rm extraneous cols
-  ROW[,9] <- 'GT|REF|ALT|DP'
+  ROW[,9] <- 'GT|REF|ALT|DP|GQ'
   ROW <- ROW[,c(1,2,4,5,8,9,10:(ncol(ROW)))]
   names(ROW)[1:6] <- c('CHR','POS','REF','ALT','INFO','FORMAT')
   
